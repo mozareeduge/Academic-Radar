@@ -23,7 +23,7 @@ Source of truth: docs/authority/03_EXECUTION/CLAUDE_CODE_EXECUTION_INTAKE.md (P0
 - [x] `P05c` Identity resolution (identity before relation) (done)
 - [x] `P06a` Snapshots and evidence artifacts (append-only) (done)
 - [x] `P06b` Independence counting and authority-conflict resolution (done)
-- [ ] `P07a` Research protocol engine: readiness is computed (pending)
+- [x] `P07a` Research protocol engine: readiness is computed (done)
 - [ ] `P07b` Five versioned protocol definitions + loader (pending)
 - [ ] `P11` Deadline engine (precision preserved, never invented) (pending)
 - [ ] `P10a` Gate assessment and hard-blocker logic (pending)
