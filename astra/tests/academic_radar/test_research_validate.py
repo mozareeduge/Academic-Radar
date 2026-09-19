@@ -78,6 +78,7 @@ class TestAcceptOutputProviderTimeout:
 
 
 class TestApplyOutputPreservesState:
+    # ORACLE-045
     def test_apply_output_leaves_prior_state_unchanged_when_accepted_none(self):
         prior_state = {"case_id": "case-123", "status": "REVIEWED"}
 

@@ -273,6 +273,7 @@ def setup_entities(db_session: Session):
 class TestInvalidationDependencyTargeted:
     """Test targeted dependency-based invalidation (ORACLE-020)."""
 
+    # ORACLE-020
     def test_invalidate_only_dependent_claim_when_snapshot_changes(
         self, db_session: Session, setup_entities
     ):
@@ -351,6 +352,7 @@ class TestInvalidationDependencyTargeted:
         assert final_research_state == initial_research_state, "supervisor_case research_state should not change"
         assert final_disposition == initial_disposition, "supervisor_case user_disposition should not change"
 
+    # ORACLE-042
     def test_user_notes_survive_invalidation(
         self, db_session: Session, setup_entities
     ):

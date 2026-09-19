@@ -10,6 +10,7 @@ from tests.academic_radar.canary import expect_violation
 class TestDateOnlyParsing:
     """Test date-only deadline parsing without time or timezone."""
 
+    # ORACLE-017, ORACLE-018
     def test_parse_date_only_dmy_format(self):
         """15 January 2027 should parse as DATE_ONLY."""
         deadline = parse_deadline("15 January 2027")
@@ -56,6 +57,7 @@ class TestTimeWithoutTimezone:
 class TestLocalTimeWithTimezone:
     """Test deadline with explicit timezone (IANA or abbreviation)."""
 
+    # ORACLE-017, ORACLE-018
     def test_parse_local_time_with_iana_tz(self):
         """15 January 2027, 17:00 Europe/Brussels should compute UTC."""
         deadline = parse_deadline("15 January 2027, 17:00 Europe/Brussels")
@@ -133,6 +135,7 @@ class TestGarbageAndUnparseable:
         assert deadline.utc_instant is None
         assert deadline.original_text == "definitely not a deadline"
 
+    # ORACLE-017
     def test_original_text_always_preserved(self):
         """Original text should never be modified."""
         text = "  Some   Weird  FORMATTING  15 January 2027  "

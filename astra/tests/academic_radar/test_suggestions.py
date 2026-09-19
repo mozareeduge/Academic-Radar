@@ -117,6 +117,7 @@ class TestDispositionUserOnly:
     ORACLE-002: User disposition is automation-proof.
     """
 
+    # ORACLE-002
     def test_set_user_disposition_permission_check(self):
         """Only USER actor can call set_user_disposition."""
         # Mock session and case for testing permission check
@@ -149,6 +150,7 @@ class TestSaveSuggestionImmutable:
     and suggestion recomputation cannot mutate user_disposition.
     """
 
+    # ORACLE-002
     def test_save_suggestion_updates_suggested_only(self):
         """save_suggestion updates suggested_disposition, never user_disposition."""
         from unittest.mock import Mock

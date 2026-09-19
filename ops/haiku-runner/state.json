@@ -282,15 +282,21 @@
     "P22": {
       "status": "done",
       "attempts": 1,
-      "feedback": ""
+      "feedback": "",
+      "sha": "b82d8e32ce58dbf598b6e4fd0065698cac075674"
     },
     "P21b": {
-      "status": "pending",
-      "attempts": 0
+      "status": "done",
+      "attempts": 1,
+      "feedback": ""
     }
   },
   "ci_red": [],
   "started": "2026-09-19 17:20:20.487085",
-  "in_progress": "P22",
-  "ci_pending": null
+  "in_progress": "P21b",
+  "ci_pending": {
+    "sha": "b82d8e32ce58dbf598b6e4fd0065698cac075674",
+    "slice": "P22",
+    "tries": 0
+  }
 }

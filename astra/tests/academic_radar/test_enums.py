@@ -126,6 +126,7 @@ class TestSnapshotStateEnum:
 class TestGateResultEnum:
     """Test GateResult enum has correct members and values."""
 
+    # ORACLE-004
     def test_gate_result_members(self):
         """Assert exact member-value set."""
         expected = {

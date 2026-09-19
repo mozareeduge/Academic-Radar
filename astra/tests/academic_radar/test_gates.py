@@ -273,6 +273,7 @@ class TestUnknowns:
 class TestActionable:
     """Test actionable function."""
 
+    # ORACLE-005
     def test_actionable_false_when_hard_blocker_exists(self):
         """actionable is False when there is a hard FAIL."""
         gates = [

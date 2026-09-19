@@ -142,6 +142,7 @@ class TestCasesList:
         assert item["user_disposition"] == "UNDECIDED"
         assert item["suggested_disposition"] == "WATCH"
 
+    # ORACLE-001
     def test_list_cases_filter_application_route(self, client, auth, db_session):
         """Filter by application_route."""
         case1 = make_case(db_session, application_route="SUPERVISOR_FIRST_PHD")

@@ -11,6 +11,7 @@ from academic_radar.research.protocol_loader import load_protocols
 class TestProtocolLoader:
     """Test five protocol definitions and loader."""
 
+    # ORACLE-008, ORACLE-009
     def test_load_protocols_returns_dict(self):
         """load_protocols() returns dict with correct keys."""
         protocols = load_protocols()

@@ -55,6 +55,7 @@ def test_fingerprint():
     assert fp1 != fp3, "fingerprint should differ for different text"
 
 
+# ORACLE-019
 def test_snapshots_append_only():
     """Test record_snapshot() creates CAPTURED, UNCHANGED, CHANGED as separate rows.
 

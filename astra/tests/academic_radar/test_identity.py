@@ -232,6 +232,7 @@ class TestIdentityResolutionDifferentInstitution:
 class TestCanMergeRelation:
     """Test can_merge_relation function."""
 
+    # ORACLE-013
     def test_can_merge_relation_with_resolved(self):
         resolution = Resolution(IdentityStatus.RESOLVED, 'test_basis')
         assert can_merge_relation(resolution) is True

@@ -12,6 +12,7 @@ from tests.academic_radar.canary import expect_violation
 class TestIndependentSupportCount:
     """Test counting distinct canonical_origin values (mirrors count once)."""
 
+    # ORACLE-015
     def test_single_artifact(self):
         """Single artifact counts as 1."""
         artifacts = [
@@ -56,6 +57,7 @@ class TestIndependentSupportCount:
 class TestResolveConflict:
     """Test conflict resolution by authority hierarchy."""
 
+    # ORACLE-014
     def test_official_programme_beats_aggregator(self):
         """Official programme (15 Jan) should beat discovery aggregator (1 Feb)."""
         statements = [
@@ -79,6 +81,7 @@ class TestResolveConflict:
         assert result.overridden[0]["value"] == "2025-02-01"
         assert result.overridden[0]["authority"] == SourceAuthority.DISCOVERY_AGGREGATOR
 
+    # ORACLE-016
     def test_two_official_pages_disagree_contradicted(self):
         """Two OFFICIAL_PROGRAMME statements with different values -> CONTRADICTED."""
         statements = [

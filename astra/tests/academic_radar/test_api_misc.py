@@ -162,6 +162,7 @@ class TestFundingEndpoint:
         assert item["award_amount"] == "25000.50"
         assert item["tuition_amount"] == "9250.75"
 
+    # ORACLE-007
     def test_post_funding_creates_assessment(self, client, auth, db_session):
         """POST /funding/{case_id} creates a new FundingAssessment."""
         funding_route = TargetEntity(kind="FundingRoute", display_name="Test Funding")

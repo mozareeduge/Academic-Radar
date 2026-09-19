@@ -223,6 +223,7 @@ def setup_case_with_evidence(db_session: Session):
     }
 
 
+# ORACLE-032
 def test_brief_lists_dependencies(db_session: Session, setup_case_with_evidence):
     """Brief contains dependency records for all evidence snapshots."""
     case_id = setup_case_with_evidence["case_id"]

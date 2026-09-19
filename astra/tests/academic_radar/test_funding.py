@@ -11,6 +11,7 @@ from academic_radar.domain.funding import (
 
 
 class TestExactDecimalArithmetic:
+    # ORACLE-029
     def test_decimal_addition_exact(self):
         """Test exact Decimal arithmetic, not float approximation."""
         award = Decimal('0.10')

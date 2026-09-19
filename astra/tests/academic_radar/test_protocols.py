@@ -7,6 +7,7 @@ from tests.academic_radar.canary import expect_violation
 class TestComputeReadiness:
     """Test protocol readiness computation (ORACLE-008, ORACLE-009)."""
 
+    # ORACLE-008, ORACLE-009
     def test_all_mandatory_found(self):
         """All mandatory classes SEARCHED_FOUND => ready."""
         protocol = Protocol(
@@ -29,6 +30,7 @@ class TestComputeReadiness:
         assert result.blocked == []
         assert result.partial is False
 
+    # ORACLE-008, ORACLE-009
     def test_one_mandatory_not_searched(self):
         """One mandatory class NOT_SEARCHED => not ready, listed in missing."""
         protocol = Protocol(
@@ -50,6 +52,7 @@ class TestComputeReadiness:
         assert "supervisor_spine" in result.missing
         assert result.blocked == []
 
+    # ORACLE-008, ORACLE-009
     def test_zero_result_with_allow_zero_result_true(self):
         """Zero-result search with allow_zero_result=True => counts as ready."""
         protocol = Protocol(
@@ -69,6 +72,7 @@ class TestComputeReadiness:
         assert result.ready is True
         assert result.missing == []
 
+    # ORACLE-008, ORACLE-009
     def test_zero_result_with_allow_zero_result_false(self):
         """Zero-result search with allow_zero_result=False => not ready."""
         protocol = Protocol(

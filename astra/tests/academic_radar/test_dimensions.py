@@ -39,6 +39,7 @@ class TestSupervisorDimensions:
 class TestMAHeads:
     """Test MA assessment heads."""
 
+    # ORACLE-006
     def test_ma_heads_has_three(self):
         """Assert MA_HEADS has exactly 3 heads."""
         assert len(MA_HEADS) == 3

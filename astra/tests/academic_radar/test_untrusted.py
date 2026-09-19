@@ -14,6 +14,7 @@ def injection_fixtures():
         return json.load(f)
 
 
+# ORACLE-012
 def test_wrap_untrusted_neutralizes_closing_tag(injection_fixtures):
     source = injection_fixtures[0]
     wrapped = wrap_untrusted(source["id"], source["text"])
@@ -28,6 +29,7 @@ def test_detect_injection_finds_hostile_patterns(injection_fixtures):
         assert len(labels) > 0, f"Expected labels for {source['id']}, got none"
 
 
+# ORACLE-012, ORACLE-033
 def test_run_pipeline_leaves_adapter_calls_empty(injection_fixtures):
     adapter = ActionAdapter()
     for source in injection_fixtures:

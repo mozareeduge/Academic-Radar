@@ -250,6 +250,7 @@ def test_unchanged_page_no_change_event():
             os.unlink(db_path)
 
 
+# ORACLE-019
 def test_changed_page_one_event():
     """Test changed page creates one change event with material=True when >1 line differs."""
     with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as tmp:
