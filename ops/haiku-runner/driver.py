@@ -273,6 +273,9 @@ def do_slice(s, st):
         ss["attempts"] += 1
         log(f"{s['id']} attempt {attempts}/{MAX_ATTEMPTS}")
         pre = frozenset(p for _, p in status_paths())
+        for stale in list(ROOT.glob(f"**/blockers/{s['id']}.md")):  # stale blocker files must not trigger BLOCKED
+            if ".venv" not in stale.parts and "node_modules" not in stale.parts:
+                stale.unlink()
         while True:
             kind, text = run_haiku(render_prompt(s, feedback), s.get("max_turns", 110))
             if kind == "limit":
