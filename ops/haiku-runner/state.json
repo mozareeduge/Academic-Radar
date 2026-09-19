@@ -72,6 +72,12 @@
     "P03a": {
       "status": "done",
       "attempts": 1,
+      "feedback": "",
+      "sha": "b4a97f7c7e83c4c6820d39bd1e1a236e8a3b421f"
+    },
+    "P04a": {
+      "status": "done",
+      "attempts": 1,
       "feedback": ""
     }
   },
