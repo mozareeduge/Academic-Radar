@@ -3,7 +3,7 @@
 Source of truth: docs/authority/03_EXECUTION/CLAUDE_CODE_EXECUTION_INTAKE.md (P00–P22).
 
 - [x] `P01a` Package skeleton, canary helper, canary registry (done)
-- [ ] `P01b` Map donor behaviours to existing donor tests (pending)
+- [x] `P01b` Map donor behaviours to existing donor tests (done)
 - [ ] `P02a` Domain enums + legal state transitions (pending)
 - [ ] `P02b` Schema group 1: profile, routes, targets, identities (pending)
 - [ ] `P02c` Schema group 2: evaluation cases and history (pending)
