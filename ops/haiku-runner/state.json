@@ -7,7 +7,8 @@
     "P01a": {
       "status": "done",
       "attempts": 3,
-      "feedback": ""
+      "feedback": "",
+      "sha": "62a507bf62afc520cdca10caaee7800ee2edbd79"
     }
   },
   "ci_red": [],
