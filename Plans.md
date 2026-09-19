@@ -16,7 +16,7 @@ Source of truth: docs/authority/03_EXECUTION/CLAUDE_CODE_EXECUTION_INTAKE.md (P0
 - [x] `P03a` Profile/route seed importer (synthetic fixture only) (done)
 - [~] `P03b` Author the REAL profile seed YAML from session memory v0.2 (deferred)
 - [x] `P04a` Discovery normalisation, dedupe key, DiscoveryTrace (done)
-- [ ] `P04b` Source authority baseline + canonical-origin grouping (pending)
+- [x] `P04b` Source authority baseline + canonical-origin grouping (done)
 - [ ] `P04c` Country scope config, fixture-backed discovery adapter, route classifier (pending)
 - [ ] `P05a` OpenAlex connector (fixture-tested) (pending)
 - [ ] `P05b` OpenAIRE Graph v3 connector (fixture-tested) (pending)
