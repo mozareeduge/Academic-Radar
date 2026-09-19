@@ -30,7 +30,7 @@ Source of truth: docs/authority/03_EXECUTION/CLAUDE_CODE_EXECUTION_INTAKE.md (P0
 - [x] `P10b` Supervisor 0-3 dimensions and MA three heads (done)
 - [x] `P10c` Funding arithmetic (Decimal) and 'fully funded' guard (done)
 - [x] `P10d` Freshness, suggestion rules, and human-only disposition (done)
-- [ ] `P08a` Structured node output schemas + evidence-bound acceptance (pending)
+- [x] `P08a` Structured node output schemas + evidence-bound acceptance (done)
 - [ ] `P08b` Model provider interface, mock provider, run identity (pending)
 - [ ] `P08c` LangGraph deep-research workflow (nine nodes, fixture-run) (pending)
 - [ ] `P08d` RQ research job wrapper with idempotency (pending)
