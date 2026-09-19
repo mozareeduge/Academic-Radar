@@ -210,9 +210,20 @@
     "P13b": {
       "status": "done",
       "attempts": 1,
-      "feedback": ""
+      "feedback": "",
+      "sha": "a279d6a4988791a59e118841ec316017433a17fa"
+    },
+    "P19a": {
+      "status": "pending",
+      "attempts": 0
+    },
+    "P13c": {
+      "status": "pending",
+      "attempts": 0
     }
   },
   "ci_red": [],
-  "started": "2026-09-19 17:20:20.487085"
+  "started": "2026-09-19 17:20:20.487085",
+  "in_progress": "P13c",
+  "ci_pending": null
 }

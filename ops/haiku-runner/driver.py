@@ -27,7 +27,13 @@ LIMIT_RE = re.compile(
     r"(usage limit|rate.?limit|limit reached|hit your limit|limit will reset|resets? (at|in)|"
     r"overloaded|\b529\b|too many requests|quota|out of (extra )?usage)", re.I)
 DISALLOWED = ["Bash(git commit:*)", "Bash(git push:*)", "Bash(git reset:*)", "Bash(git clean:*)",
-              "Bash(git checkout:*)", "Bash(git stash:*)", "Bash(curl:*)", "Bash(gh:*)", "Bash(wget:*)"]
+              "Bash(git checkout:*)", "Bash(git stash:*)", "Bash(git add:*)", "Bash(git remote:*)", "Bash(git config:*)",
+              "Bash(curl:*)", "Bash(gh:*)", "Bash(wget:*)", "Bash(ssh:*)", "Bash(scp:*)", "Bash(nc:*)",
+              "Bash(powershell:*)", "Bash(pwsh:*)", "Bash(cmd:*)", "Bash(reg:*)", "Bash(taskkill:*)", "Bash(net:*)",
+              "Bash(rm -r:*)", "Bash(rm -fr:*)", "Bash(rmdir:*)", "Bash(rd:*)", "Bash(del:*)",
+              "Bash(*_radar_private*)"] + [f"{t}({pat})" for t in ("Read", "Edit", "Write") for pat in (
+                  "../_radar_private/**", "../../_radar_private/**", "**/_radar_private/**",
+                  "//c/Users/Zarinpal/Documents/Personal Formal Documents/Apply/_radar_private/**")]
 
 sys.path.insert(0, str(OPS))
 import manifest  # noqa: E402
@@ -185,40 +191,82 @@ def commit_push(s, st):
     return rc == 0, out
 
 
-def wait_ci(sha):
-    deadline = time.time() + 45 * 60
-    while time.time() < deadline:
-        rc, out = sh(["gh", "run", "list", "--branch", "main", "--commit", sha, "--json",
-                      "databaseId,status,conclusion,name", "--limit", "10"])
+def ci_status(sha):
+    """Non-blocking. Returns ('pending'|'ok'|'red', log_text)."""
+    rc, out = sh(["gh", "run", "list", "--branch", "main", "--commit", sha, "--json",
+                  "databaseId,status,conclusion,name", "--limit", "10"])
+    try:
+        runs = json.loads(out) if rc == 0 else []
+    except Exception:
+        runs = []
+    if not runs or any(r["status"] != "completed" for r in runs):
+        return "pending", ""
+    bad = [r for r in runs if r["conclusion"] not in ("success", "skipped", "neutral")]
+    if not bad:
+        return "ok", ""
+    failing, seen = [], False
+    for r in bad:
+        _, jo = sh(["gh", "run", "view", str(r["databaseId"]), "--json", "jobs"])
         try:
-            runs = json.loads(out) if rc == 0 else []
+            jobs = json.loads(jo)["jobs"]
+            seen = True
         except Exception:
-            runs = []
-        if runs and all(r["status"] == "completed" for r in runs):
-            bad = [r for r in runs if r["conclusion"] not in ("success", "skipped", "neutral")]
-            if not bad:
-                return True, ""
-            failing = []
-            for r in bad:
-                _, jo = sh(["gh", "run", "view", str(r["databaseId"]), "--json", "jobs"])
-                try:
-                    jobs = json.loads(jo)["jobs"]
-                except Exception:
-                    jobs = []
-                failing += [j["name"] for j in jobs if j["conclusion"] not in ("success", "skipped", "neutral")]
-            failing = [n for n in failing if n not in BASELINE_RED_JOBS]
-            if jobs and not failing:
-                return True, ""
-            _, logs = sh(["gh", "run", "view", str(bad[0]["databaseId"]), "--log-failed"])
-            keep = [l for l in logs.splitlines() if not any(b in l for b in BASELINE_RED_JOBS)]
-            return False, "\n".join(keep[-150:])
-        time.sleep(60)
-    return False, "CI did not finish within 45 minutes"
+            jobs = []
+        failing += [j["name"] for j in jobs if j["conclusion"] not in ("success", "skipped", "neutral")]
+    failing = [n for n in failing if n not in BASELINE_RED_JOBS]
+    if seen and not failing:
+        return "ok", ""
+    _, logs = sh(["gh", "run", "view", str(bad[0]["databaseId"]), "--log-failed"])
+    keep = [l for l in logs.splitlines() if not any(b in l for b in BASELINE_RED_JOBS)]
+    return "red", "\n".join(keep[-150:])
+
+
+def resolve_ci(st, block):
+    """Check the pending CI run. block=False returns immediately if it is still running."""
+    limit = time.time() + 45 * 60
+    while st.get("ci_pending"):
+        pend = st["ci_pending"]
+        state, logs = ci_status(pend["sha"])
+        if state == "pending":
+            if not block:
+                return
+            if time.time() >= limit:
+                log(f"CI still pending for {pend['sha'][:8]} after 45 min; not waiting any longer")
+                st["ci_red"].append(pend["sha"][:8] + "?")
+                st["ci_pending"] = None
+                return
+            time.sleep(60)
+            continue
+        if state == "ok":
+            log(f"CI green (baseline-red jobs ignored) at {pend['sha'][:8]}")
+            st["ci_pending"] = None
+            return
+        if pend["tries"] >= 2:
+            log(f"CI red at {pend['sha'][:8]}; giving up after 2 fix attempts")
+            st["ci_red"].append(pend["sha"][:8])
+            st["ci_pending"] = None
+            return
+        pend["tries"] += 1
+        log(f"CI red at {pend['sha'][:8]}; fix attempt {pend['tries']}")
+        fx = {"id": f"{pend['slice']}-ci{pend['tries']}", "title": "fix CI failure", "phase": "ci",
+              "read": [], "steps": ["Read the CI failure log below. Make the minimal change so CI passes on Linux. "
+                                    "Change nothing unrelated.\n" + logs[-3500:]],
+              "allowed": ["astra/**", "dashboard/**", ".github/workflows/ci.yml", "docker-compose*.yml", "scripts/**"],
+              "gates": [manifest.be_fast()], "max_turns": 40}
+        if do_slice(fx, st):
+            _, sha2 = git("rev-parse", "HEAD")
+            pend["sha"] = sha2.strip()
+        else:
+            st["ci_red"].append(pend["sha"][:8])
+            st["ci_pending"] = None
+        save_state(st)
 
 
 def do_slice(s, st):
     ss = sstate(st, s["id"])
     feedback = ss.get("feedback", "")
+    st["in_progress"] = s["id"]
+    save_state(st)
     attempts = 0
     while attempts < MAX_ATTEMPTS:
         attempts += 1
@@ -247,6 +295,7 @@ def do_slice(s, st):
             BLOCKERS.mkdir(parents=True, exist_ok=True)
             bf.write_text(btxt, encoding="utf-8")
             ss.update(status="blocked", blocker=btxt[:1500])
+            st["in_progress"] = None
             log(f"{s['id']} BLOCKED by executor")
             return False
         if kind == "error":
@@ -264,6 +313,7 @@ def do_slice(s, st):
     else:
         stash_failed(s)
         ss.update(status="blocked", blocker=f"Gate failed {MAX_ATTEMPTS}x. Last output:\n{feedback[:1400]}")
+        st["in_progress"] = None
         log(f"{s['id']} BLOCKED after {MAX_ATTEMPTS} attempts")
         return False
     ss.update(status="done", feedback="")
@@ -273,24 +323,10 @@ def do_slice(s, st):
     _, sha = git("rev-parse", "HEAD")
     ss["sha"] = sha.strip()
     log(f"{s['id']} DONE {sha.strip()[:8]} push={'ok' if ok else 'FAILED ' + out[-120:]}")
+    st["in_progress"] = None
     if s.get("ci") and ok:
-        good, logs = wait_ci(sha.strip())
-        tries = 0
-        while not good and tries < 2:
-            tries += 1
-            log(f"CI red at {sha.strip()[:8]}; fix attempt {tries}")
-            fx = {"id": f"{s['id']}-ci{tries}", "title": "fix CI failure", "phase": s.get("phase"),
-                  "read": [], "steps": ["Read the CI failure log below. Make the minimal change so CI passes on Linux. "
-                                        "Change nothing unrelated.\n" + logs[-3500:]],
-                  "allowed": ["astra/**", "dashboard/**", ".github/workflows/ci.yml", "docker-compose*.yml", "scripts/**"],
-                  "gates": [manifest.be_fast()], "max_turns": 40}
-            if do_slice(fx, st):
-                _, sha2 = git("rev-parse", "HEAD")
-                good, logs = wait_ci(sha2.strip())
-            else:
-                break
-        if not good:
-            st["ci_red"].append(sha.strip()[:8])
+        resolve_ci(st, block=True)  # settle any earlier pending run first
+        st["ci_pending"] = {"sha": sha.strip(), "slice": s["id"], "tries": 0}
     save_state(st)
     write_plans(st)
     return True
@@ -322,6 +358,7 @@ def main():
             sstate(st, s["id"])["status"] = "deferred"
     while True:
         progressed = False
+        resolve_ci(st, block=False)
         for s in manifest.SLICES:
             if a.only and s["id"] != a.only:
                 continue
@@ -330,9 +367,15 @@ def main():
                 continue
             if any(st["slices"].get(d, {}).get("status") != "done" for d in s.get("deps", [])):
                 continue
-            _, dirty = git("status", "--porcelain")
-            if dirty.strip():
-                log("working tree dirty at slice start; continuing on top of it")
+            own = {"ops/haiku-runner/state.json", "ops/haiku-runner/STATUS.md", "Plans.md"}
+            dirty = [p for _, p in status_paths() if p not in own]
+            if dirty and st.get("in_progress") not in (None, s["id"]):
+                log(f"orphan work from {st['in_progress']} found before {s['id']}; stashing it")
+                git("stash", "push", "-u", "-m", f"orphan-{st['in_progress']}-{int(time.time())}")
+                save_state(st)
+                write_plans(st)
+            elif dirty:
+                log("resuming same slice on top of its partial work")
             ok = do_slice(s, st)
             save_state(st)
             write_plans(st)
@@ -342,6 +385,8 @@ def main():
             break
         if a.only:
             break
+    resolve_ci(st, block=True)
+    save_state(st)
     pend = [s["id"] for s in manifest.SLICES if sstate(st, s["id"])["status"] == "pending"]
     log("HALT: nothing runnable. pending-but-blocked-by-deps: %s" % pend if pend else "COMPLETE: all runnable slices done")
     write_plans(st)

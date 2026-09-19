@@ -25,7 +25,7 @@ DESELECT = ["tests/test_csvout.py::test_output_is_byte_identical_to_pandas",
 
 
 def be(target):
-    return f'cd astra && "{{PY}}" -m pytest {target} -q -p no:cacheprovider'
+    return f'cd astra && "{{PY}}" -m pytest {target} -q -p no:cacheprovider --maxfail=5'
 
 
 def be_fast():
@@ -34,7 +34,7 @@ def be_fast():
 
 def be_full():
     ds = " ".join(f"--deselect {d}" for d in DESELECT)
-    return f'cd astra && "{{PY}}" -m pytest tests -q -p no:cacheprovider {ds}'
+    return f'cd astra && "{{PY}}" -m pytest tests -q -p no:cacheprovider -x {ds}'
 
 
 def fe(pattern):
@@ -295,7 +295,7 @@ SLICES = [
     S("P13c", "API: funding, watch, routes/profile, brief hooks", ["P13b", "P12b", "P10c", "P03a"], [OBJ + " (SURF-003, SURF-008, SURF-009)"],
       ["Create astra/api/routes/radar_misc.py under /api/radar: GET/POST /funding/{case_id} (list/add FundingAssessment computed with domain.funding using Decimal serialised as strings), GET /watch/targets, POST /watch/targets, GET /watch/changes (events + impacted cases via invalidation report), GET /routes, PATCH /routes/{id}/state, GET /profile.",
        "Register in astra/api/app.py. Tests tests/academic_radar/test_api_misc.py: funding response amounts are strings not floats; a change event lists ONLY dependent cases; route state patch validates against RouteState."],
-      ["astra/api/routes/radar_misc.py", "astra/api/app.py"], [be("tests/academic_radar/test_api_misc.py"), be_full()], ci=True),
+      ["astra/api/routes/radar_misc.py", "astra/api/app.py", "astra/academic_radar/**"], [be("tests/academic_radar/test_api_misc.py"), be_full()], ci=True),
     # ---------------------------------------------------------------- P19 brief backend
     S("P19a", "Application brief: freeze with dependency versions, supersession", ["P12b", "P10d"], [OBJ + " (OBJ-013, FLOW-009)", DEC + " (DEC-022)", ORC + " (ORACLE-032)", QAC + " (QA-P14)", SCN + " (SCN-036, SCN-037)"],
       ["Create astra/academic_radar/domain/briefs.py: `freeze_brief(session, case_id)` builds content JSON from current claims/gates/dimensions/funding of the case where EVERY statement carries evidence ids and source freshness; refuses (raises BriefBlocked with list) if any critical fact is STALE or any hard gate is UNKNOWN; writes radar_application_briefs plus radar_brief_dependencies rows (dependency_kind, id, version/fingerprint). `is_superseded(session, brief_id)` True when any recorded dependency's snapshot fingerprint changed. It never generates or sends correspondence.",
@@ -336,7 +336,7 @@ SLICES = [
       ["Add astra/api/routes/radar_briefs.py (POST /api/radar/cases/{id}/brief freezing via domain.briefs; GET /api/radar/briefs/{id} with superseded flag) and register it in astra/api/app.py.",
        "Add Brief tab in the dossier: freeze button (disabled with the reason list when BriefBlocked), rendered brief where every statement shows evidence count and freshness, a 'Superseded' banner when the API says so. No 'send' or 'email' button anywhere.",
        "Tests: tests/academic_radar/test_api_briefs.py (freeze blocked by stale fact returns 409 with reasons; success lists dependencies) and dashboard/__tests__/radar/brief.test.tsx (no element with text matching /send|email/i; superseded banner)."],
-      ["astra/api/routes/radar_briefs.py", "astra/api/app.py", "dashboard/app/(app)/cases/*", "dashboard/components/radar/**", "dashboard/__tests__/radar/**"],
+      ["astra/api/routes/radar_briefs.py", "astra/api/app.py", "astra/academic_radar/**", "dashboard/app/(app)/cases/*", "dashboard/components/radar/**", "dashboard/__tests__/radar/**"],
       [be("tests/academic_radar/test_api_briefs.py"), fe("radar"), fe_static()], max_turns=140),
     S("P20", "Responsive + accessibility closure (code side)", ["P16", "P17", "P18", "P19b"], [UIB + " (responsive and accessibility sections)", EXE + " (section H, GATE-ACCESSIBILITY, GATE-RESPONSIVE)"],
       ["Add dev dependency jest-axe (run once in dashboard/: npm install --save-dev jest-axe @types/jest-axe) and a helper dashboard/test-utils/axe.ts.",
@@ -356,7 +356,7 @@ SLICES = [
        "Create scripts/rc_smoke.py: using only stdlib http against http://localhost:8000: waits for /health, then (fixture mode, env RADAR_FIXTURE_MODE=1) imports the synthetic seed, runs fixture discovery, creates a supervisor case and researches it with the mock provider, creates an MA case with two funding assessments, triggers a watch change, freezes a brief, then prints JSON {ok:bool, steps:[...]} and exits non-zero on any failure. Add the endpoints/flags it needs ONLY if they do not already exist and only under /api/radar/dev (enabled by RADAR_FIXTURE_MODE=1, absent otherwise).",
        "Add a CI job `compose-smoke` to .github/workflows/ci.yml: docker compose up -d --build, run scripts/rc_smoke.py, docker compose restart, run it again with --verify-durable, then docker compose down. Update .env.example (names only) and docs/RADAR_RUNBOOK.md (start, migrate, import seed, backup/restore).",
        "Test tests/academic_radar/test_rc_smoke_static.py: docker-compose.yml parses with yaml and contains radar-worker; scripts/rc_smoke.py compiles; ci.yml contains compose-smoke; .env.example has no value after `=` for any key containing KEY/SECRET/TOKEN/PASSWORD."],
-      ["docker-compose.yml", "scripts/rc_smoke.py", ".github/workflows/ci.yml", ".env.example", "docs/RADAR_RUNBOOK.md", "astra/api/routes/radar_dev.py", "astra/api/app.py"],
-      [be("tests/academic_radar/test_rc_smoke_static.py"), be_full()], ci=True,
+      ["docker-compose.yml", "scripts/rc_smoke.py", ".github/workflows/ci.yml", ".env.example", "docs/RADAR_RUNBOOK.md", "astra/api/routes/radar_dev.py", "astra/api/app.py", "astra/academic_radar/**"],
+      [be("tests/academic_radar/test_rc_smoke_static.py"), be_fast()], ci=True,
       note="Docker is not installed locally; the real smoke runs in GitHub Actions."),
 ]
