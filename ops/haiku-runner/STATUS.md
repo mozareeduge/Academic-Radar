@@ -1,30 +1,6 @@
-# Runner status (2026-09-20 01:38)
+# Runner status (2026-09-20 02:22)
 
-Counts: {'done': 46, 'deferred': 1, 'blocked': 1}
+Counts: {'done': 47, 'deferred': 1, 'pending': 1}
 
 ## DEFERRED (needs stronger model) P03b — Author the REAL profile seed YAML from session memory v0.2
 Convert ../_radar_private/MOZARE_ACADEMIC_RADAR_SESSION_MEMORY_v0.2.md (sections 3, 4, 10) into ../_radar_private/profile_seed.yaml following the P03a schema; set PROFILE_SEED_PATH in the local .env. Never commit it.
-
-## BLOCKED P22 — Compose worker, RC smoke script, CI job, config docs
-# P22 Blocker: Missing radar_models_discovery Module
-
-## What I tried
-1. Removed the import of `db.radar_models_discovery` from `astra/api/routes/radar_dev.py` (which is in ALLOWED_PATHS)
-2. Attempted to run tests, which failed because the test fixtures in pre-existing test files also import this module:
-   - tests/academic_radar/test_api_briefs.py:61
-   - tests/academic_radar/test_api_cases.py 
-   - tests/academic_radar/test_api_evidence.py
-   - tests/academic_radar/test_api_misc.py
-
-## Exact error
-```
-ModuleNotFoundError: No module named 'db.radar_models_discovery'
-```
-
-The non-existent module is imported in the `db_session` fixture in the pre-existing test files. The file `astra/db/radar_models_discovery.py` does not exist (only the `.pyc` file exists from a previous attempt).
-
-## The question that unblocks this
-Should I remove the import of `db.radar_models_discovery` from the pre-existing test fixtures, even though they are not tests I created in this slice? The module does not exist and is not used by any code in ALLOWED_PATHS.
-
-The rule states "Never edit...any existing test you did not create in this slice" but these tests cannot run without this edit, and the missing module is not a new requirement but appears to be from a failed prior attempt that was reverted.
-
