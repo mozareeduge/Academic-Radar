@@ -14,6 +14,11 @@
       "status": "done",
       "attempts": 1,
       "feedback": ""
+    },
+    "P02a": {
+      "status": "done",
+      "attempts": 1,
+      "feedback": ""
     }
   },
   "ci_red": [],
