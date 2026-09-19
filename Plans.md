@@ -6,7 +6,7 @@ Source of truth: docs/authority/03_EXECUTION/CLAUDE_CODE_EXECUTION_INTAKE.md (P0
 - [x] `P01b` Map donor behaviours to existing donor tests (done)
 - [x] `P02a` Domain enums + legal state transitions (done)
 - [x] `P02b` Schema group 1: profile, routes, targets, identities (done)
-- [ ] `P02c` Schema group 2: evaluation cases and history (pending)
+- [x] `P02c` Schema group 2: evaluation cases and history (done)
 - [ ] `P02d` Schema group 3: protocols, runs, evidence, snapshots (pending)
 - [ ] `P02e` Schema group 4: claims and assessments (pending)
 - [ ] `P02f` Schema group 5: watch, briefs, migration doc (pending)

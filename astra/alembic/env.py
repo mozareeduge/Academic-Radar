@@ -16,6 +16,7 @@ from alembic import context
 from db.init import DEFAULT_DB_URL, resolve_db_url
 from db.models import Base
 from db import radar_models_targets
+from db import radar_models_cases
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
