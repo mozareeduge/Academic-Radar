@@ -233,6 +233,14 @@ def do_slice(s, st):
                 continue
             break
         bf = BLOCKERS / f"{s['id']}.md"
+        stray = [p for p in ROOT.glob(f"**/blockers/{s['id']}.md")
+                 if ".venv" not in p.parts and "node_modules" not in p.parts]
+        if stray and not bf.exists():
+            bf.parent.mkdir(parents=True, exist_ok=True)
+            bf.write_text(stray[0].read_text(encoding="utf-8"), encoding="utf-8")
+            for p in stray:
+                if p != bf:
+                    p.unlink()
         if bf.exists() or re.search(r"^\s*BLOCKED\s*$", text, re.M):
             btxt = bf.read_text(encoding="utf-8") if bf.exists() else text[-800:]
             stash_failed(s)

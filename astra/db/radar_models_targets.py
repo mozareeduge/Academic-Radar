@@ -191,7 +191,7 @@ class Programme(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
 
 
-class Opportunity(Base):
+class RadarOpportunity(Base):
     __tablename__ = "radar_opportunities"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
