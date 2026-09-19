@@ -26,6 +26,7 @@ import type {
   PositionTypeCatalogue,
   OpportunityFilters,
   Paginated,
+  RadarCase,
   SavedItem,
   SavedKind,
   SavedStatus,
@@ -738,4 +739,9 @@ export async function rotateKey(id: number): Promise<ApiKeyCreateResult> {
 
 export async function fetchKeyUsage(id: number, days = 30): Promise<ApiKeyUsage> {
   return request<ApiKeyUsage>(`/api/v1/apikeys/${id}/usage?days=${days}`);
+}
+
+// --- Radar (P14) -----------------------------------------------------------------
+export function fetchRadarQueue(): Promise<Paginated<RadarCase>> {
+  return request<Paginated<RadarCase>>("/api/radar/queue");
 }

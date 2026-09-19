@@ -485,3 +485,16 @@ export interface ApiKeyUsage {
   items: { date: string; requests: number; rate_limited: number }[];
   total: number;
 }
+
+// --- Radar (P14) -----------------------------------------------------------------
+export interface RadarCase {
+  id: string;
+  title: string;
+  route: string;
+  research_state: string;
+  suggested_disposition?: string | null;
+  user_disposition?: string | null;
+  blocker?: string | null;
+  deadline?: string | null;
+  freshness?: string | null;
+}

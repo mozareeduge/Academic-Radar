@@ -13,12 +13,16 @@ import { cn } from "@/lib/utils";
 // The backend already answers 403 on those routes; hiding them stops the app
 // advertising things most people cannot use and should not have to think about.
 const NAV_ITEMS = [
-  { href: "/", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/profile", label: "Profile", icon: User },
-  { href: "/opportunities", label: "Opportunities", icon: Workflow },
-  { href: "/supervisors", label: "Supervisors", icon: Users },
-  { href: "/bookmarks", label: "Bookmarks", icon: Bookmark },
-  { href: "/settings", label: "Settings", icon: Settings },
+  { href: "/radar", label: "Radar", icon: LayoutDashboard },
+  { href: "/phd", label: "PhD", icon: User },
+  { href: "/ma", label: "MA + Funding", icon: Workflow },
+  { href: "/supervisors-radar", label: "Supervisors", icon: Users },
+  { href: "/watch", label: "Watch", icon: Bookmark },
+  { href: "/profile", label: "Profile & Routes", icon: Settings },
+  { href: "/", label: "Dashboard", icon: LayoutDashboard, isLegacy: true },
+  { href: "/opportunities", label: "Opportunities", icon: Workflow, isLegacy: true },
+  { href: "/bookmarks", label: "Bookmarks", icon: Bookmark, isLegacy: true },
+  { href: "/settings", label: "Settings", icon: Settings, isLegacy: true },
   { href: "/keys", label: "API Keys", icon: KeyRound, adminOnly: true },
   { href: "/admin", label: "Admin", icon: Shield, adminOnly: true },
 ];
@@ -34,6 +38,8 @@ export default function Nav() {
   }, []);
 
   const items = NAV_ITEMS.filter((item) => !item.adminOnly || isAdmin);
+  const primaryItems = items.filter((item) => !item.isLegacy);
+  const legacyItems = items.filter((item) => item.isLegacy);
 
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -56,7 +62,7 @@ export default function Nav() {
           aria-label="Main navigation"
           className="flex items-center gap-1 overflow-x-auto"
         >
-          {items.map(({ href, label, icon: Icon }) => {
+          {primaryItems.map(({ href, label, icon: Icon }) => {
             const active =
               href === "/" ? pathname === "/" : pathname.startsWith(href);
             return (
@@ -84,6 +90,34 @@ export default function Nav() {
               </Link>
             );
           })}
+          {legacyItems.length > 0 && (
+            <>
+              <div className="h-4 border-l border-muted-foreground/30 mx-1" />
+              <span className="text-[10px] uppercase tracking-[0.08em] text-muted-foreground/50 px-2 font-medium">
+                Legacy
+              </span>
+              {legacyItems.map(({ href, label, icon: Icon }) => {
+                const active =
+                  href === "/" ? pathname === "/" : pathname.startsWith(href);
+                return (
+                  <Link
+                    key={href}
+                    href={href}
+                    className={cn(
+                      "inline-flex shrink-0 items-center gap-1 border-b-2 px-2 py-1.5",
+                      "whitespace-nowrap text-[11px] uppercase tracking-[0.08em] transition-colors",
+                      active
+                        ? "border-primary font-bold text-foreground"
+                        : "border-transparent text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    <Icon className="size-4" aria-hidden />
+                    <span>{label}</span>
+                  </Link>
+                );
+              })}
+            </>
+          )}
           {/* Sign out lived nowhere before this. The session cookie is
               httpOnly, so a user who signed in with the wrong email had no way
               to get back out short of waiting for the token to expire. */}
