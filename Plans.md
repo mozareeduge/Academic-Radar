@@ -35,7 +35,7 @@ Source of truth: docs/authority/03_EXECUTION/CLAUDE_CODE_EXECUTION_INTAKE.md (P0
 - [x] `P08c` LangGraph deep-research workflow (nine nodes, fixture-run) (done)
 - [x] `P08d` RQ research job wrapper with idempotency (done)
 - [x] `P12a` Watch checks, fingerprints, change events (done)
-- [ ] `P12b` Dependency-targeted invalidation (pending)
+- [x] `P12b` Dependency-targeted invalidation (done)
 - [ ] `P13a` API: radar queue, cases, dispositions, notes, stage (pending)
 - [ ] `P13b` API: evidence inspector, research runs, coverage (pending)
 - [ ] `P13c` API: funding, watch, routes/profile, brief hooks (pending)
