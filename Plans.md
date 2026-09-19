@@ -27,7 +27,7 @@ Source of truth: docs/authority/03_EXECUTION/CLAUDE_CODE_EXECUTION_INTAKE.md (P0
 - [x] `P07b` Five versioned protocol definitions + loader (done)
 - [x] `P11` Deadline engine (precision preserved, never invented) (done)
 - [x] `P10a` Gate assessment and hard-blocker logic (done)
-- [ ] `P10b` Supervisor 0-3 dimensions and MA three heads (pending)
+- [x] `P10b` Supervisor 0-3 dimensions and MA three heads (done)
 - [ ] `P10c` Funding arithmetic (Decimal) and 'fully funded' guard (pending)
 - [ ] `P10d` Freshness, suggestion rules, and human-only disposition (pending)
 - [ ] `P08a` Structured node output schemas + evidence-bound acceptance (pending)
