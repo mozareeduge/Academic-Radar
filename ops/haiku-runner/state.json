@@ -288,15 +288,12 @@
     "P21b": {
       "status": "done",
       "attempts": 1,
-      "feedback": ""
+      "feedback": "",
+      "sha": "56f8da604c157c9327f20b2e0769cb3b2b9c7787"
     }
   },
   "ci_red": [],
   "started": "2026-09-19 17:20:20.487085",
-  "in_progress": "P21b",
-  "ci_pending": {
-    "sha": "b82d8e32ce58dbf598b6e4fd0065698cac075674",
-    "slice": "P22",
-    "tries": 0
-  }
+  "in_progress": null,
+  "ci_pending": null
 }
