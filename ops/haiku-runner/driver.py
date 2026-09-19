@@ -213,7 +213,7 @@ def do_slice(s, st):
         log(f"{s['id']} attempt {attempts}/{MAX_ATTEMPTS}")
         pre = frozenset(p for _, p in status_paths())
         while True:
-            kind, text = run_haiku(render_prompt(s, feedback), s.get("max_turns", 60))
+            kind, text = run_haiku(render_prompt(s, feedback), s.get("max_turns", 110))
             if kind == "limit":
                 log(f"usage/rate limit hit; sleeping {LIMIT_SLEEP_S // 60} min. {text[:120]!r}")
                 time.sleep(LIMIT_SLEEP_S)
