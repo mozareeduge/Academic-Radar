@@ -33,7 +33,7 @@ Source of truth: docs/authority/03_EXECUTION/CLAUDE_CODE_EXECUTION_INTAKE.md (P0
 - [x] `P08a` Structured node output schemas + evidence-bound acceptance (done)
 - [x] `P08b` Model provider interface, mock provider, run identity (done)
 - [x] `P08c` LangGraph deep-research workflow (nine nodes, fixture-run) (done)
-- [ ] `P08d` RQ research job wrapper with idempotency (pending)
+- [x] `P08d` RQ research job wrapper with idempotency (done)
 - [ ] `P12a` Watch checks, fingerprints, change events (pending)
 - [ ] `P12b` Dependency-targeted invalidation (pending)
 - [ ] `P13a` API: radar queue, cases, dispositions, notes, stage (pending)
