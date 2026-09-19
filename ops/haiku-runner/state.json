@@ -114,6 +114,12 @@
     "P06a": {
       "status": "done",
       "attempts": 1,
+      "feedback": "",
+      "sha": "b2789b8dbb8e51f180b2937a8ef008832276dcbe"
+    },
+    "P06b": {
+      "status": "done",
+      "attempts": 1,
       "feedback": ""
     }
   },
