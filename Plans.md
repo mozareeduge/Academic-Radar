@@ -25,7 +25,7 @@ Source of truth: docs/authority/03_EXECUTION/CLAUDE_CODE_EXECUTION_INTAKE.md (P0
 - [x] `P06b` Independence counting and authority-conflict resolution (done)
 - [x] `P07a` Research protocol engine: readiness is computed (done)
 - [x] `P07b` Five versioned protocol definitions + loader (done)
-- [ ] `P11` Deadline engine (precision preserved, never invented) (pending)
+- [x] `P11` Deadline engine (precision preserved, never invented) (done)
 - [ ] `P10a` Gate assessment and hard-blocker logic (pending)
 - [ ] `P10b` Supervisor 0-3 dimensions and MA three heads (pending)
 - [ ] `P10c` Funding arithmetic (Decimal) and 'fully funded' guard (pending)
