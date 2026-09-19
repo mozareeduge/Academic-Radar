@@ -1,0 +1,15 @@
+{
+  "slices": {
+    "P03b": {
+      "status": "deferred",
+      "attempts": 0
+    },
+    "P01a": {
+      "status": "done",
+      "attempts": 3,
+      "feedback": ""
+    }
+  },
+  "ci_red": [],
+  "started": "2026-09-19 17:20:20.487085"
+}

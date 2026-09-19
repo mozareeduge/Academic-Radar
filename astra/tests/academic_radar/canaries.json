@@ -1,0 +1,50 @@
+[
+  {
+    "id": "CANARY-01",
+    "slug": "unsupported_model_claim",
+    "text": "unsupported-model-claim canary must fail consequential-claim acceptance",
+    "status": "unimplemented"
+  },
+  {
+    "id": "CANARY-02",
+    "slug": "prompt_injection",
+    "text": "prompt-injection fixture must fail to cause tool/secret/disposition side effect",
+    "status": "unimplemented"
+  },
+  {
+    "id": "CANARY-03",
+    "slug": "same_name_identity",
+    "text": "same-name identity fixture must fail merge",
+    "status": "unimplemented"
+  },
+  {
+    "id": "CANARY-04",
+    "slug": "missing_mandatory_class",
+    "text": "missing mandatory evidence class must fail EVIDENCE_READY",
+    "status": "unimplemented"
+  },
+  {
+    "id": "CANARY-05",
+    "slug": "secondary_source_conflict",
+    "text": "secondary-source conflict must fail override of current official rule",
+    "status": "unimplemented"
+  },
+  {
+    "id": "CANARY-06",
+    "slug": "user_disposition_overwrite",
+    "text": "user-disposition overwrite mutation must fail",
+    "status": "unimplemented"
+  },
+  {
+    "id": "CANARY-07",
+    "slug": "unrelated_case_invalidation",
+    "text": "unrelated-case invalidation mutation must fail",
+    "status": "unimplemented"
+  },
+  {
+    "id": "CANARY-08",
+    "slug": "invented_deadline_timezone",
+    "text": "invented deadline timezone mutation must fail",
+    "status": "unimplemented"
+  }
+]
