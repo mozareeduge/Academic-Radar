@@ -43,7 +43,7 @@ Source of truth: docs/authority/03_EXECUTION/CLAUDE_CODE_EXECUTION_INTAKE.md (P0
 - [x] `P14` UI shell: six-item navigation and Radar queue (done)
 - [x] `P15a` Case Dossier core: blocker region, suggestion vs decision, gates, dimensions (done)
 - [x] `P15b` Evidence inspector and research coverage (done)
-- [ ] `P16` PhD experiences: supervisor-first, advertised, structured (pending)
+- [x] `P16` PhD experiences: supervisor-first, advertised, structured (done)
 - [ ] `P17` MA + Funding: three independent heads, linked funding packages (pending)
 - [ ] `P18` Watch / change UI and source health (pending)
 - [ ] `P19b` Application Brief UI + brief API (pending)
