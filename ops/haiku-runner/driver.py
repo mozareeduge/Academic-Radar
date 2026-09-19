@@ -141,11 +141,13 @@ def status_paths():
     return paths
 
 
-def enforce_paths(s):
+def enforce_paths(s, pre=frozenset()):
     allowed = list(s["allowed"]) + ["astra/tests/academic_radar/**", "ops/haiku-runner/blockers/*",
                                     "ops/haiku-runner/state.json", "Plans.md", "ops/haiku-runner/STATUS.md"]
     bad = []
     for code, p in status_paths():
+        if p in pre:
+            continue
         if not any(fnmatch.fnmatch(p, g) for g in allowed):
             bad.append(p)
             if code.strip() == "??":
@@ -209,6 +211,7 @@ def do_slice(s, st):
         attempts += 1
         ss["attempts"] += 1
         log(f"{s['id']} attempt {attempts}/{MAX_ATTEMPTS}")
+        pre = frozenset(p for _, p in status_paths())
         while True:
             kind, text = run_haiku(render_prompt(s, feedback), s.get("max_turns", 60))
             if kind == "limit":
@@ -229,7 +232,7 @@ def do_slice(s, st):
             feedback = f"Executor error: {text}"
             log(f"{s['id']} executor error: {text[:200]}")
             continue
-        bad = enforce_paths(s)
+        bad = enforce_paths(s, pre)
         ok, fb = run_gates(s)
         if bad:
             fb = f"You wrote outside ALLOWED PATHS (driver reverted): {bad}\n" + fb
