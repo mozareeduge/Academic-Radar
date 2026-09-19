@@ -234,11 +234,17 @@
     "P15a": {
       "status": "done",
       "attempts": 1,
+      "feedback": "",
+      "sha": "6bbd7ab76f535e644ae1af1767caaf6f01546e6d"
+    },
+    "P15b": {
+      "status": "done",
+      "attempts": 1,
       "feedback": ""
     }
   },
   "ci_red": [],
   "started": "2026-09-19 17:20:20.487085",
-  "in_progress": "P15a",
+  "in_progress": "P15b",
   "ci_pending": null
 }

@@ -536,3 +536,21 @@ export interface CaseDossier {
   gates: GateAssessment[];
   dimensions: DimensionAssessment[];
 }
+
+// --- Evidence Inspector (P15b) ------------------------------------------------
+export type CoverageStatus = "searched+found" | "searched+none" | "not searched" | "blocked";
+
+export interface CoverageItem {
+  class: string;
+  status: CoverageStatus;
+}
+
+export interface Claim {
+  id: string;
+  statement: string;
+  type: "EXTERNAL_FACT" | "OBSERVED_RELATION" | "INFERENCE" | "USER_DECISION";
+  status: "SUPPORTED" | "PARTIAL" | "CONTRADICTED" | "UNKNOWN" | "STALE";
+  evidence_count: number;
+  authority: string;
+  freshness: string;
+}
