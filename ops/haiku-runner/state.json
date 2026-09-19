@@ -66,6 +66,12 @@
     "P09c": {
       "status": "done",
       "attempts": 1,
+      "feedback": "",
+      "sha": "643624fa2e70acc0417575c072dc2693705cf2ed"
+    },
+    "P03a": {
+      "status": "done",
+      "attempts": 1,
       "feedback": ""
     }
   },

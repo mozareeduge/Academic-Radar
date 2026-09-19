@@ -1,0 +1,132 @@
+candidate:
+  state: ACTIVE
+  fixed_constraints:
+    provenance:
+      source: "Session notes 2026-09-19"
+      verified: true
+    value: "English language proficiency (IELTS 7.0+); strong quantitative background"
+
+  education:
+    - provenance:
+        source: "CV provided by applicant"
+        verified: true
+      degree: "Bachelor of Science in Physics"
+      institution: "University of Example"
+      year: 2020
+      gpa: 3.85
+
+    - provenance:
+        source: "CV provided by applicant"
+        verified: true
+      degree: "Master of Science in Computational Physics"
+      institution: "Technical University of Example"
+      year: 2022
+      focus: "Quantum simulation algorithms"
+
+  language_evidence:
+    - provenance:
+        source: "Official IELTS certificate"
+        verified: true
+      language: "English"
+      proficiency_level: "C1"
+      test_date: "2022-03-15"
+
+    - provenance:
+        source: "University transcript"
+        verified: true
+      language: "French"
+      proficiency_level: "B2"
+      context: "Completed coursework in French at Master's level"
+
+  scholarly:
+    - provenance:
+        source: "arXiv and publication records"
+        verified: true
+      title: "Novel quantum error correction using topological codes"
+      type: "paper"
+      publication_year: 2024
+      doi: "10.example/arxiv.2024.12345"
+
+    - provenance:
+        source: "University thesis repository"
+        verified: true
+      title: "Scalable simulation of quantum circuits on classical architectures"
+      type: "master_thesis"
+      year: 2022
+      institution: "Technical University of Example"
+
+  artistic:
+    - provenance:
+        source: "Personal portfolio and exhibition records"
+        verified: false
+      title: "Data visualization installation exploring quantum mechanics concepts"
+      year: 2023
+      medium: "Interactive digital installation"
+
+  professional:
+    - provenance:
+        source: "LinkedIn and company records"
+        verified: true
+      position: "Research Engineer"
+      organization: "Quantum Computing Initiative"
+      duration_months: 18
+      location: "Example City, Country"
+      start_date: "2023-01-15"
+
+    - provenance:
+        source: "University website and departmental records"
+        verified: true
+      position: "Teaching Assistant"
+      organization: "Technical University of Example"
+      course: "Advanced Quantum Mechanics"
+      duration_months: 12
+
+routes:
+  - seed_key: "quantum-simulation-route"
+    name: "Quantum Simulation and Error Correction"
+    state: ACTIVE
+    statement: "Investigate supervisor opportunities in quantum simulation, error correction codes, and scalable quantum computing architectures."
+    core_problem: "Current quantum computers are limited by decoherence and error rates; developing robust error correction and simulation techniques is critical for practical quantum advantage."
+    methods:
+      - "Topological error correction"
+      - "Variational quantum algorithms"
+      - "Tensor network methods"
+      - "Quantum circuit optimization"
+    corpora:
+      - "Recent quantum computing literature (arXiv, Nature, Science)"
+      - "IEEE Quantum Engineering journal"
+      - "Open-source quantum frameworks (Qiskit, Cirq, PennyLane)"
+    target_disciplines:
+      - "Quantum Physics"
+      - "Computer Science (Quantum Computing)"
+      - "Applied Mathematics"
+      - "Physics (Computational)"
+    prohibited_overclaims:
+      - "Claims about near-term quantum advantage without explicit experimental backing"
+      - "Proposed solutions claiming to solve all quantum error correction at once"
+    maturity: EXPLORATORY
+
+  - seed_key: "computational-physics-phd"
+    name: "Computational Physics & Scientific Computing"
+    state: ACTIVE
+    statement: "Explore PhD opportunities in computational physics, scientific machine learning, and high-performance computing applied to physical simulations."
+    core_problem: "Large-scale scientific simulations require new algorithmic approaches and computational methods to handle modern hardware (GPUs, distributed systems)."
+    methods:
+      - "GPU-accelerated numerical methods"
+      - "Machine learning for physics simulation"
+      - "High-performance distributed computing"
+      - "Inverse problem solving"
+    corpora:
+      - "SIAM journals and proceedings"
+      - "ML4Science venues (NeurIPS, ICML workshops)"
+      - "Applied Mathematics literature"
+      - "HPC conference proceedings"
+    target_disciplines:
+      - "Applied Physics"
+      - "Computational Science"
+      - "Computer Science (Scientific Computing)"
+      - "Mathematics (Numerical Analysis)"
+    prohibited_overclaims:
+      - "Claims that machine learning replaces traditional numerical analysis without validation"
+      - "Overstatement of scalability without demonstrated benchmarks"
+    maturity: ACTIVE
