@@ -1,0 +1,132 @@
+version: '1.0.0'
+
+protocols:
+  SUPERVISOR_FIRST_PHD:
+    application_route: SUPERVISOR_FIRST_PHD
+    version: '1.0.0'
+    mandatory:
+      - IDENTITY_POSITION
+      - RESEARCH_OBJECTS
+      - THEORY_TOOLKIT
+      - METHODS
+      - RECENT_WORKS
+      - PROJECTS_GRANTS
+      - SUPERVISION_RECORD
+      - SUPERVISED_PROJECTS
+    optional:
+      - CONCEPT_METHOD_GENEALOGY
+      - CO_SUPERVISION_PATTERNS
+      - FUNDING_ATTACHED_TO_PRECEDENTS
+    allow_zero_result: true
+    allowed_unknowns: []
+    blocking_unknowns:
+      - IDENTITY_POSITION
+    freshness_days:
+      DEADLINE: 30
+      IDENTITY_POSITION: 180
+      RESEARCH_OBJECTS: 180
+      THEORY_TOOLKIT: 180
+      METHODS: 180
+      RECENT_WORKS: 180
+      PROJECTS_GRANTS: 180
+      SUPERVISION_RECORD: 180
+      SUPERVISED_PROJECTS: 180
+      CONCEPT_METHOD_GENEALOGY: 180
+      CO_SUPERVISION_PATTERNS: 180
+      FUNDING_ATTACHED_TO_PRECEDENTS: 180
+
+  ADVERTISED_PHD:
+    application_route: ADVERTISED_PHD
+    version: '1.0.0'
+    mandatory:
+      - VACANCY_TERMS
+      - FORMAL_ELIGIBILITY
+      - DEADLINE
+      - SUPERVISOR_IDENTITY
+      - PROJECT_DESCRIPTION
+      - APPLICATION_PROCEDURE
+    optional:
+      - SUPERVISOR_SPINE
+    allow_zero_result: false
+    allowed_unknowns: []
+    blocking_unknowns: []
+    freshness_days:
+      DEADLINE: 30
+      FORMAL_ELIGIBILITY: 90
+      VACANCY_TERMS: 180
+      SUPERVISOR_IDENTITY: 180
+      PROJECT_DESCRIPTION: 180
+      APPLICATION_PROCEDURE: 180
+      SUPERVISOR_SPINE: 180
+
+  STRUCTURED_PHD:
+    application_route: STRUCTURED_PHD
+    version: '1.0.0'
+    mandatory:
+      - PROGRAMME_STRUCTURE
+      - ADMISSION_RULES
+      - FUNDING_ROUTES
+      - DEADLINE
+      - SUPERVISOR_MATCHING_PROCEDURE
+    optional:
+      - PAST_COHORT_EVIDENCE
+    allow_zero_result: false
+    allowed_unknowns: []
+    blocking_unknowns: []
+    freshness_days:
+      DEADLINE: 30
+      FORMAL_ELIGIBILITY: 90
+      PROGRAMME_STRUCTURE: 180
+      ADMISSION_RULES: 180
+      FUNDING_ROUTES: 180
+      SUPERVISOR_MATCHING_PROCEDURE: 180
+      PAST_COHORT_EVIDENCE: 180
+
+  MA_PROGRAMME:
+    application_route: MA_PROGRAMME
+    version: '1.0.0'
+    mandatory:
+      - FORMAL_ELIGIBILITY
+      - CURRICULUM_FIT
+      - ENGLISH_REQUIREMENT
+      - DEADLINE
+      - EXISTING_MA_RULE
+    optional:
+      - COMMITTEE_EVIDENCE
+      - NARRATIVE_INPUTS
+    allow_zero_result: false
+    allowed_unknowns: []
+    blocking_unknowns: []
+    freshness_days:
+      DEADLINE: 30
+      FORMAL_ELIGIBILITY: 90
+      CURRICULUM_FIT: 180
+      ENGLISH_REQUIREMENT: 180
+      EXISTING_MA_RULE: 180
+      COMMITTEE_EVIDENCE: 180
+      NARRATIVE_INPUTS: 180
+
+  FUNDING_ASSESSMENT:
+    application_route: FUNDING_ASSESSMENT
+    version: '1.0.0'
+    mandatory:
+      - SCHOLARSHIP_ELIGIBILITY
+      - NOMINATION_ROUTE
+      - AWARD_TERMS
+      - TUITION_FEES
+      - COST_INPUTS
+      - DEADLINE
+    optional:
+      - INCOMPATIBILITY_RULES
+    allow_zero_result: false
+    allowed_unknowns: []
+    blocking_unknowns: []
+    freshness_days:
+      DEADLINE: 30
+      FORMAL_ELIGIBILITY: 90
+      SCHOLARSHIP_ELIGIBILITY: 180
+      NOMINATION_ROUTE: 180
+      AWARD_TERMS: 180
+      TUITION_FEES: 180
+      COST_INPUTS: 180
+      INCOMPATIBILITY_RULES: 180

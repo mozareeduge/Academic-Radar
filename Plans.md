@@ -24,7 +24,7 @@ Source of truth: docs/authority/03_EXECUTION/CLAUDE_CODE_EXECUTION_INTAKE.md (P0
 - [x] `P06a` Snapshots and evidence artifacts (append-only) (done)
 - [x] `P06b` Independence counting and authority-conflict resolution (done)
 - [x] `P07a` Research protocol engine: readiness is computed (done)
-- [ ] `P07b` Five versioned protocol definitions + loader (pending)
+- [x] `P07b` Five versioned protocol definitions + loader (done)
 - [ ] `P11` Deadline engine (precision preserved, never invented) (pending)
 - [ ] `P10a` Gate assessment and hard-blocker logic (pending)
 - [ ] `P10b` Supervisor 0-3 dimensions and MA three heads (pending)
