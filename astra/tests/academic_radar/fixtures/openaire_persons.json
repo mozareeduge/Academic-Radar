@@ -1,0 +1,16 @@
+{
+  "data": [
+    {
+      "id": "person_openaire_001",
+      "name": "Alice Johnson",
+      "orcid": "0000-0001-2345-6789",
+      "research_products_count": 15
+    },
+    {
+      "id": "person_openaire_002",
+      "name": "Alice Johnson",
+      "orcid": "0000-0005-9876-5432",
+      "research_products_count": 8
+    }
+  ]
+}

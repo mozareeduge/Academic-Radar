@@ -1,0 +1,20 @@
+{
+  "data": [
+    {
+      "id": "project_openaire_001",
+      "title": "Advanced Machine Learning Research Initiative",
+      "funder": "European Research Council",
+      "start_year": 2021,
+      "end_year": 2024,
+      "funding_amount": 2500000
+    },
+    {
+      "id": "project_openaire_002",
+      "title": "Network Analysis and Graph Theory",
+      "funder": "Horizon Europe",
+      "start_year": 2022,
+      "end_year": 2025,
+      "funding_amount": 1800000
+    }
+  ]
+}

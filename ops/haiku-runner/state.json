@@ -96,6 +96,12 @@
     "P05a": {
       "status": "done",
       "attempts": 1,
+      "feedback": "",
+      "sha": "7dda2d5586b9c433678bec6ec6994e8c699265cf"
+    },
+    "P05b": {
+      "status": "done",
+      "attempts": 1,
       "feedback": ""
     }
   },

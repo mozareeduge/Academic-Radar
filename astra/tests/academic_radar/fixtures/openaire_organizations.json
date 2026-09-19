@@ -1,0 +1,16 @@
+{
+  "data": [
+    {
+      "id": "org_openaire_001",
+      "name": "University of Manchester",
+      "ror": "028nf7y87",
+      "country": "GB"
+    },
+    {
+      "id": "org_openaire_002",
+      "name": "Max Planck Institute for Computer Science",
+      "ror": "027k65916",
+      "country": "DE"
+    }
+  ]
+}
