@@ -214,17 +214,23 @@
       "sha": "a279d6a4988791a59e118841ec316017433a17fa"
     },
     "P19a": {
-      "status": "pending",
-      "attempts": 0
+      "status": "done",
+      "attempts": 1,
+      "feedback": ""
     },
     "P13c": {
       "status": "done",
       "attempts": 1,
-      "feedback": ""
+      "feedback": "",
+      "sha": "6b3c8a440f7073fa8751e8520a1b758f2c3d4925"
     }
   },
   "ci_red": [],
   "started": "2026-09-19 17:20:20.487085",
-  "in_progress": "P13c",
-  "ci_pending": null
+  "in_progress": "P19a",
+  "ci_pending": {
+    "sha": "6b3c8a440f7073fa8751e8520a1b758f2c3d4925",
+    "slice": "P13c",
+    "tries": 0
+  }
 }
