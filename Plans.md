@@ -31,7 +31,7 @@ Source of truth: docs/authority/03_EXECUTION/CLAUDE_CODE_EXECUTION_INTAKE.md (P0
 - [x] `P10c` Funding arithmetic (Decimal) and 'fully funded' guard (done)
 - [x] `P10d` Freshness, suggestion rules, and human-only disposition (done)
 - [x] `P08a` Structured node output schemas + evidence-bound acceptance (done)
-- [ ] `P08b` Model provider interface, mock provider, run identity (pending)
+- [x] `P08b` Model provider interface, mock provider, run identity (done)
 - [ ] `P08c` LangGraph deep-research workflow (nine nodes, fixture-run) (pending)
 - [ ] `P08d` RQ research job wrapper with idempotency (pending)
 - [ ] `P12a` Watch checks, fingerprints, change events (pending)

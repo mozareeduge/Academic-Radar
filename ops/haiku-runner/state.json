@@ -168,6 +168,12 @@
     "P08a": {
       "status": "done",
       "attempts": 1,
+      "feedback": "",
+      "sha": "826320a55eb5fff47a47444cfe0f520dd9b5819b"
+    },
+    "P08b": {
+      "status": "done",
+      "attempts": 1,
       "feedback": ""
     }
   },
