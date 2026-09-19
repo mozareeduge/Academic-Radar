@@ -1,0 +1,12 @@
+{
+  "qa_snapshot_id": "RADAR-QA-2026-09-17-r1",
+  "authority_snapshot_id": "RADAR-PDA-2026-09-17-r2",
+  "files": {
+    "CLAUDE_QA_CONTRACT.md": "6545d63bd47a8f75a7df2cfc22a102c0110459944c9d82db608863c3c0905654",
+    "QA_ORACLE_REGISTER.md": "2a618394517a1a3c4b502d333a71ddc20f1cda4a7783541f3e1d88e255f7d826",
+    "QA_RECONCILIATION_NOTES.md": "955c3e31c66408729ed31e877541fb37e6642228a5c997d4c60093679ddfa2ce",
+    "QA_STATE.yaml": "5178b96da21da22f4df2a94af47c7f90e5d1d888f15fa943b7493326a287cc9a"
+  },
+  "runtime_tests_executed": 0,
+  "status": "QA_CONTRACT_READY_FOR_EXECUTION"
+}

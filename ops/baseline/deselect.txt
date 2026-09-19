@@ -1,0 +1,2 @@
+tests/test_csvout.py::test_output_is_byte_identical_to_pandas
+tests/test_pipeline_run.py::test_write_html_embeds_payload

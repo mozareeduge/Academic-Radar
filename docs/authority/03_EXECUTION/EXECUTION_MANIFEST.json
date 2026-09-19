@@ -1,0 +1,8 @@
+{
+  "execution_intake_revision": "RADAR-EXEC-2026-09-17-r1",
+  "files": {
+    "CLAUDE_CODE_EXECUTION_INTAKE.md": "13f0bed4d91b43c0d13235def2ce3df6b25e22d6c8a754e29800cc411cc1bc4c",
+    "LAUNCH_MANIFEST.yaml": "1ddba2b46a2ff340c8d0009c35b312729e0f58121c5c6bd141a02bf17a7bbb12"
+  },
+  "status": "READY_FOR_CODE_EXECUTION"
+}

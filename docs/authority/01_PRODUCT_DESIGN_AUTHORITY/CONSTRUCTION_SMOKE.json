@@ -1,0 +1,44 @@
+{
+  "authority_snapshot_id": "RADAR-PDA-2026-09-17-r2",
+  "authority_revision": 2,
+  "construction_smoke": {
+    "MIDDLE_LAYER_INDEX.md": {
+      "bytes": 3957,
+      "snapshot_present": true
+    },
+    "00_PRODUCT_HORIZON.md": {
+      "bytes": 15545,
+      "snapshot_present": true
+    },
+    "01_OBJECT_STATE_AND_FLOW_MODEL.md": {
+      "bytes": 16032,
+      "snapshot_present": true
+    },
+    "02_SCENARIO_CASE_ATLAS.md": {
+      "bytes": 22220,
+      "snapshot_present": true
+    },
+    "03_DESIGN_UIUX_BLUEPRINTS.md": {
+      "bytes": 12750,
+      "snapshot_present": true
+    },
+    "04_COPY_DECK.md": {
+      "bytes": 8977,
+      "snapshot_present": true
+    },
+    "05_DECISION_AND_SUPERSESSION_LEDGER.md": {
+      "bytes": 9720,
+      "snapshot_present": true
+    }
+  },
+  "id_inventory": {
+    "DEC-": 45,
+    "HZN-": 26,
+    "OBJ-": 18,
+    "SURF-": 10,
+    "FLOW-": 10,
+    "SCN-": 54,
+    "COPY-": 67
+  },
+  "note": "Construction/integrity smoke only; independent QA follows in Layer 2."
+}

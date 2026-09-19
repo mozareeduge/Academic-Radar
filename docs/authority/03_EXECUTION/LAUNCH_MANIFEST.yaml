@@ -1,0 +1,24 @@
+execution_intake_revision: RADAR-EXEC-2026-09-17-r1
+product_authority_snapshot_id: RADAR-PDA-2026-09-17-r2
+qa_snapshot_id: RADAR-QA-2026-09-17-r1
+donor:
+  repo: mimdot/CIK
+  planning_head: 8c300d28b9add865cd09b2e5e141f94a6b033c74
+target_repo: TO_CREATE_FROM_DONOR
+terminal_state: RELEASE_CANDIDATE_READY
+topology: LOCAL_SELF_HOSTED_CONTAINER_STACK
+release_units:
+- web
+- api
+- worker
+- postgres
+- redis
+not_required_v1:
+- public_domain
+- production_deploy
+- tauri_desktop
+- activepieces
+- changedetection
+- neo4j
+- vector_db
+owner_action_required: []

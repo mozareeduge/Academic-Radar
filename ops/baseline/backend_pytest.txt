@@ -1,0 +1,224 @@
+........................................................................ [  6%]
+........................................................................ [ 13%]
+........................................................................ [ 19%]
+........................................................................ [ 26%]
+......................................................FFFFF............. [ 32%]
+........................................................................ [ 39%]
+........................................................................ [ 45%]
+........................................................................ [ 52%]
+........................................................................ [ 58%]
+...............F........................................................ [ 65%]
+........................................................................ [ 72%]
+........................................................................ [ 78%]
+........................................................................ [ 85%]
+........................................................................ [ 91%]
+........................................................................ [ 98%]
+...................                                                      [100%]
+================================== FAILURES ===================================
+________ test_output_is_byte_identical_to_pandas[typical pipeline row] ________
+
+name = 'typical pipeline row'
+tmp_path = WindowsPath('C:/Users/Zarinpal/AppData/Local/Temp/pytest-of-Zarinpal/pytest-348/test_output_is_byte_identical_0')
+
+    @pytest.mark.parametrize("name", list(CASES))
+    def test_output_is_byte_identical_to_pandas(name, tmp_path):
+        # Only this test needs pandas — it exists to prove parity. The format
+        # assertions below must run everywhere, including the pandas-free bundle.
+        pd = pytest.importorskip("pandas", reason="only needed to prove parity")
+        rows, cols = CASES[name]
+        ours, theirs = tmp_path / "ours.csv", tmp_path / "theirs.csv"
+    
+        frame = pd.DataFrame(rows, columns=cols) if cols else pd.DataFrame(rows)
+        if cols:
+            frame = frame[cols]
+        frame.to_csv(theirs, index=False)
+        write_csv(str(ours), rows, cols)
+    
+>       assert ours.read_bytes() == theirs.read_bytes()
+E       AssertionError: assert b'title,insti...https://x/2\n' == b'title,insti...tps://x/2\r\n'
+E         
+E         At index 69 diff: b'\n' != b'\r'
+E         Use -v to get more diff
+
+tests\test_csvout.py:58: AssertionError
+_____ test_output_is_byte_identical_to_pandas[quotes, newlines, unicode] ______
+
+name = 'quotes, newlines, unicode'
+tmp_path = WindowsPath('C:/Users/Zarinpal/AppData/Local/Temp/pytest-of-Zarinpal/pytest-348/test_output_is_byte_identical_1')
+
+    @pytest.mark.parametrize("name", list(CASES))
+    def test_output_is_byte_identical_to_pandas(name, tmp_path):
+        # Only this test needs pandas — it exists to prove parity. The format
+        # assertions below must run everywhere, including the pandas-free bundle.
+        pd = pytest.importorskip("pandas", reason="only needed to prove parity")
+        rows, cols = CASES[name]
+        ours, theirs = tmp_path / "ours.csv", tmp_path / "theirs.csv"
+    
+        frame = pd.DataFrame(rows, columns=cols) if cols else pd.DataFrame(rows)
+        if cols:
+            frame = frame[cols]
+        frame.to_csv(theirs, index=False)
+        write_csv(str(ours), rows, cols)
+    
+>       assert ours.read_bytes() == theirs.read_bytes()
+E       assert b'a,b,c,d\n"H...,semi;colon\n' == b'a,b,c,d\r\n...emi;colon\r\n'
+E         
+E         At index 7 diff: b'\n' != b'\r'
+E         Use -v to get more diff
+
+tests\test_csvout.py:58: AssertionError
+__ test_output_is_byte_identical_to_pandas[explicit column subset and order] __
+
+name = 'explicit column subset and order'
+tmp_path = WindowsPath('C:/Users/Zarinpal/AppData/Local/Temp/pytest-of-Zarinpal/pytest-348/test_output_is_byte_identical_2')
+
+    @pytest.mark.parametrize("name", list(CASES))
+    def test_output_is_byte_identical_to_pandas(name, tmp_path):
+        # Only this test needs pandas — it exists to prove parity. The format
+        # assertions below must run everywhere, including the pandas-free bundle.
+        pd = pytest.importorskip("pandas", reason="only needed to prove parity")
+        rows, cols = CASES[name]
+        ours, theirs = tmp_path / "ours.csv", tmp_path / "theirs.csv"
+    
+        frame = pd.DataFrame(rows, columns=cols) if cols else pd.DataFrame(rows)
+        if cols:
+            frame = frame[cols]
+        frame.to_csv(theirs, index=False)
+        write_csv(str(ours), rows, cols)
+    
+>       assert ours.read_bytes() == theirs.read_bytes()
+E       AssertionError: assert b'm,z\n3,1\n6,4\n' == b'm,z\r\n3,1\r\n6,4\r\n'
+E         
+E         At index 3 diff: b'\n' != b'\r'
+E         Use -v to get more diff
+
+tests\test_csvout.py:58: AssertionError
+__________ test_output_is_byte_identical_to_pandas[floats and ints] ___________
+
+name = 'floats and ints'
+tmp_path = WindowsPath('C:/Users/Zarinpal/AppData/Local/Temp/pytest-of-Zarinpal/pytest-348/test_output_is_byte_identical_3')
+
+    @pytest.mark.parametrize("name", list(CASES))
+    def test_output_is_byte_identical_to_pandas(name, tmp_path):
+        # Only this test needs pandas — it exists to prove parity. The format
+        # assertions below must run everywhere, including the pandas-free bundle.
+        pd = pytest.importorskip("pandas", reason="only needed to prove parity")
+        rows, cols = CASES[name]
+        ours, theirs = tmp_path / "ours.csv", tmp_path / "theirs.csv"
+    
+        frame = pd.DataFrame(rows, columns=cols) if cols else pd.DataFrame(rows)
+        if cols:
+            frame = frame[cols]
+        frame.to_csv(theirs, index=False)
+        write_csv(str(ours), rows, cols)
+    
+>       assert ours.read_bytes() == theirs.read_bytes()
+E       AssertionError: assert b'f,g,h,i\n12.5,0.0,1,-3.25\n' == b'f,g,h,i\r\n...0,1,-3.25\r\n'
+E         
+E         At index 7 diff: b'\n' != b'\r'
+E         Use -v to get more diff
+
+tests\test_csvout.py:58: AssertionError
+____ test_output_is_byte_identical_to_pandas[empty rows, explicit columns] ____
+
+name = 'empty rows, explicit columns'
+tmp_path = WindowsPath('C:/Users/Zarinpal/AppData/Local/Temp/pytest-of-Zarinpal/pytest-348/test_output_is_byte_identical_4')
+
+    @pytest.mark.parametrize("name", list(CASES))
+    def test_output_is_byte_identical_to_pandas(name, tmp_path):
+        # Only this test needs pandas — it exists to prove parity. The format
+        # assertions below must run everywhere, including the pandas-free bundle.
+        pd = pytest.importorskip("pandas", reason="only needed to prove parity")
+        rows, cols = CASES[name]
+        ours, theirs = tmp_path / "ours.csv", tmp_path / "theirs.csv"
+    
+        frame = pd.DataFrame(rows, columns=cols) if cols else pd.DataFrame(rows)
+        if cols:
+            frame = frame[cols]
+        frame.to_csv(theirs, index=False)
+        write_csv(str(ours), rows, cols)
+    
+>       assert ours.read_bytes() == theirs.read_bytes()
+E       AssertionError: assert b'a,b,c\n' == b'a,b,c\r\n'
+E         
+E         At index 5 diff: b'\n' != b'\r'
+E         Use -v to get more diff
+
+tests\test_csvout.py:58: AssertionError
+_______________________ test_write_html_embeds_payload ________________________
+
+tmp_path = WindowsPath('C:/Users/Zarinpal/AppData/Local/Temp/pytest-of-Zarinpal/pytest-348/test_write_html_embeds_payload0')
+
+    def test_write_html_embeds_payload(tmp_path):
+        cfg = _cfg(tmp_path, write_html=True)
+        recs = [_rec(url="https://ex.org/j/1")]
+        RN.write_outputs(recs, cfg)
+        assert os.path.exists(cfg.html_path)
+        with open(cfg.html_path) as fh:
+>           html = fh.read()
+                   ^^^^^^^^^
+
+tests\test_pipeline_run.py:83: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <encodings.cp1252.IncrementalDecoder object at 0x0000019005D30770>
+input = b'<!doctype html>\r\n<html lang="en">\r\n<head>\r\n<meta charset="utf-8">\r\n<meta name="viewport" content="width=devi...d =>\r\n    $(id).addEventListener(\'input\', render));\r\n  render();\r\n})();\r\n</script>\r\n</body>\r\n</html>\r\n'
+final = True
+
+    def decode(self, input, final=False):
+>       return codecs.charmap_decode(input,self.errors,decoding_table)[0]
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       UnicodeDecodeError: 'charmap' codec can't decode byte 0x8f in position 9714: character maps to <undefined>
+
+..\..\..\..\..\AppData\Local\Programs\Document Batch Tool\runtime\python\cpython-3.12.13-windows-x86_64-none\Lib\encodings\cp1252.py:23: UnicodeDecodeError
+============================== warnings summary ===============================
+..\.venv\Lib\site-packages\fastapi\testclient.py:1
+  C:\Users\Zarinpal\Documents\Personal Formal Documents\Apply\Academic-Radar\.venv\Lib\site-packages\fastapi\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+..\.venv\Lib\site-packages\starlette\testclient.py:53
+  C:\Users\Zarinpal\Documents\Personal Formal Documents\Apply\Academic-Radar\.venv\Lib\site-packages\starlette\testclient.py:53: DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.
+    _PortalFactoryType = Callable[[], AbstractContextManager[anyio.abc.BlockingPortal]]
+
+api\deps.py:24
+  C:\Users\Zarinpal\Documents\Personal Formal Documents\Apply\Academic-Radar\astra\api\deps.py:24: UserWarning: ASTRA_SECRET_KEY not set — tokens are signed with an insecure dev key. Set the env var before any deployment.
+    from api.security import decode_access_token, hash_token
+
+tests/test_access_code.py: 5 warnings
+tests/test_account.py: 9 warnings
+tests/test_api.py: 73 warnings
+tests/test_apikeys.py: 12 warnings
+tests/test_assistant_routes.py: 8 warnings
+tests/test_audit.py: 4 warnings
+tests/test_auth_flow.py: 1 warning
+tests/test_cache.py: 2 warnings
+tests/test_csrf.py: 7 warnings
+tests/test_email_routes.py: 2 warnings
+tests/test_invites.py: 7 warnings
+tests/test_v1_api.py: 12 warnings
+  C:\Users\Zarinpal\Documents\Personal Formal Documents\Apply\Academic-Radar\.venv\Lib\site-packages\jwt\api_jwt.py:149: InsecureKeyLengthWarning: The HMAC key is 30 bytes long, which is below the minimum recommended length of 32 bytes for SHA256. See RFC 7518 Section 3.2.
+    return self._jws.encode(
+
+tests/test_access_code.py: 2 warnings
+tests/test_account.py: 9 warnings
+tests/test_api.py: 67 warnings
+tests/test_apikeys.py: 13 warnings
+tests/test_assistant_routes.py: 8 warnings
+tests/test_audit.py: 3 warnings
+tests/test_cache.py: 2 warnings
+tests/test_csrf.py: 3 warnings
+tests/test_email_routes.py: 2 warnings
+tests/test_invites.py: 7 warnings
+tests/test_v1_api.py: 12 warnings
+  C:\Users\Zarinpal\Documents\Personal Formal Documents\Apply\Academic-Radar\.venv\Lib\site-packages\jwt\api_jwt.py:370: InsecureKeyLengthWarning: The HMAC key is 30 bytes long, which is below the minimum recommended length of 32 bytes for SHA256. See RFC 7518 Section 3.2.
+    decoded = self.decode_complete(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED tests/test_csvout.py::test_output_is_byte_identical_to_pandas[typical pipeline row]
+FAILED tests/test_csvout.py::test_output_is_byte_identical_to_pandas[quotes, newlines, unicode]
+FAILED tests/test_csvout.py::test_output_is_byte_identical_to_pandas[explicit column subset and order]
+FAILED tests/test_csvout.py::test_output_is_byte_identical_to_pandas[floats and ints]
+FAILED tests/test_csvout.py::test_output_is_byte_identical_to_pandas[empty rows, explicit columns]
+FAILED tests/test_pipeline_run.py::test_write_html_embeds_payload - UnicodeDe...
+6 failed, 1093 passed, 273 warnings in 149.99s (0:02:29)

@@ -81,3 +81,7 @@ dashboard/src-tauri/gen/
 # Local dev-tool state, not part of the product
 .claude/
 .codegraph/
+
+# haiku-runner local
+ops/haiku-runner/driver.log
+ops/haiku-runner/.lock

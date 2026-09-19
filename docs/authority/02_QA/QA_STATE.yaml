@@ -1,0 +1,70 @@
+qa_snapshot_id: RADAR-QA-2026-09-17-r1
+qa_revision: 1
+authority_snapshot_id: RADAR-PDA-2026-09-17-r2
+authority_revision: 2
+mode: QA_ONLY
+phase: VERDICT
+project: Mozare Academic Radar
+candidate:
+  exists: false
+  candidate_id: null
+  identity: NO_TARGET_IMPLEMENTATION_CANDIDATE
+  status: PRE_CODE
+  donor_reference:
+    repository: mimdot/CIK
+    branch: main
+    observed_head: 8c300d28b9add865cd09b2e5e141f94a6b033c74
+    role: DONOR_REFERENCE_NOT_CANDIDATE
+verdict: QA_CONTRACT_READY_FOR_EXECUTION
+runtime_results: UNTESTED
+critical_risks:
+- unsupported AI inference entering consequential assessments
+- prompt injection / untrusted source text controlling agent behavior
+- identity merge contaminating supervisor/project evidence
+- formal eligibility/funding blocker hidden by intellectual fit
+- deadline/time-zone misinterpretation
+- source authority conflict resolved incorrectly
+- user disposition overwritten by automated recomputation
+- changed evidence causing global or incomplete invalidation
+- research marked complete without mandatory evidence classes
+- partial crawl/model failure presented as complete
+- funding arithmetic or 'fully funded' claim without complete evidence
+- responsive/accessibility loss of review/source/decision actions
+lenses:
+  functional_acceptance: APPLICABLE
+  state_persistence_data_integrity: APPLICABLE
+  boundary_property: APPLICABLE
+  failure_interruption_retry_recovery: APPLICABLE
+  dependencies_integrations: APPLICABLE
+  permissions_security_privacy: APPLICABLE
+  runtime_browser_input: APPLICABLE
+  accessibility: APPLICABLE
+  responsive: APPLICABLE
+  performance: PARTIAL — budgets deferred until candidate architecture exists
+  visual_interaction_ux: APPLICABLE
+  installation_update_portability: PARTIAL — topology not yet frozen
+  migration_rollback: APPLICABLE — donor-fork schema migration risk
+  localization_rtl_timezone: PARTIAL — English UI only; timezone/deadline semantics
+    applicable
+  data_ml_model_pipeline_quality: APPLICABLE — LLM structured output/provenance is
+    product-critical
+  deployment_cutover: TOPOLOGY_DEPENDENT
+proof_boundary:
+  executed_candidate_tests: 0
+  inspection_only:
+  - Layer-1 authority structural reconciliation
+  - donor CIK architecture/package/CI inspection
+  simulation: []
+  blocked: []
+  untested: All target-product runtime behavior
+open_product_oracle_questions: []
+owner_gates: []
+canary_requirements:
+- unsupported-model-claim canary must fail consequential-claim acceptance
+- prompt-injection fixture must fail to cause tool/secret/disposition side effect
+- same-name identity fixture must fail merge
+- missing mandatory evidence class must fail EVIDENCE_READY
+- secondary-source conflict must fail override of current official rule
+- user-disposition overwrite mutation must fail
+- unrelated-case invalidation mutation must fail
+- invented deadline timezone mutation must fail
