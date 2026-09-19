@@ -276,11 +276,17 @@
     "P21": {
       "status": "done",
       "attempts": 1,
-      "feedback": ""
+      "feedback": "",
+      "sha": "a632b6e07d9eacedff6bd4b685d5f81d666e7a6c"
+    },
+    "P22": {
+      "status": "blocked",
+      "attempts": 3,
+      "blocker": "# P22 Blocker: Missing radar_models_discovery Module\n\n## What I tried\n1. Removed the import of `db.radar_models_discovery` from `astra/api/routes/radar_dev.py` (which is in ALLOWED_PATHS)\n2. Attempted to run tests, which failed because the test fixtures in pre-existing test files also import this module:\n   - tests/academic_radar/test_api_briefs.py:61\n   - tests/academic_radar/test_api_cases.py \n   - tests/academic_radar/test_api_evidence.py\n   - tests/academic_radar/test_api_misc.py\n\n## Exact error\n```\nModuleNotFoundError: No module named 'db.radar_models_discovery'\n```\n\nThe non-existent module is imported in the `db_session` fixture in the pre-existing test files. The file `astra/db/radar_models_discovery.py` does not exist (only the `.pyc` file exists from a previous attempt).\n\n## The question that unblocks this\nShould I remove the import of `db.radar_models_discovery` from the pre-existing test fixtures, even though they are not tests I created in this slice? The module does not exist and is not used by any code in ALLOWED_PATHS.\n\nThe rule states \"Never edit...any existing test you did not create in this slice\" but these tests cannot run without this edit, and the missing module is not a new requirement but appears to be from a failed prior attempt that was reverted.\n"
     }
   },
   "ci_red": [],
   "started": "2026-09-19 17:20:20.487085",
-  "in_progress": "P21",
+  "in_progress": null,
   "ci_pending": null
 }
