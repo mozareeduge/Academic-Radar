@@ -12,7 +12,7 @@ Source of truth: docs/authority/03_EXECUTION/CLAUDE_CODE_EXECUTION_INTAKE.md (P0
 - [x] `P02f` Schema group 5: watch, briefs, migration doc (done)
 - [x] `P09a` SSRF URL policy (done)
 - [x] `P09b` Untrusted-source wrapper, redaction, injection detector, action adapter (done)
-- [ ] `P09c` Safe fetch wrapper + HTML sanitiser (pending)
+- [x] `P09c` Safe fetch wrapper + HTML sanitiser (done)
 - [ ] `P03a` Profile/route seed importer (synthetic fixture only) (pending)
 - [~] `P03b` Author the REAL profile seed YAML from session memory v0.2 (deferred)
 - [ ] `P04a` Discovery normalisation, dedupe key, DiscoveryTrace (pending)
