@@ -32,7 +32,7 @@ Source of truth: docs/authority/03_EXECUTION/CLAUDE_CODE_EXECUTION_INTAKE.md (P0
 - [x] `P10d` Freshness, suggestion rules, and human-only disposition (done)
 - [x] `P08a` Structured node output schemas + evidence-bound acceptance (done)
 - [x] `P08b` Model provider interface, mock provider, run identity (done)
-- [ ] `P08c` LangGraph deep-research workflow (nine nodes, fixture-run) (pending)
+- [x] `P08c` LangGraph deep-research workflow (nine nodes, fixture-run) (done)
 - [ ] `P08d` RQ research job wrapper with idempotency (pending)
 - [ ] `P12a` Watch checks, fingerprints, change events (pending)
 - [ ] `P12b` Dependency-targeted invalidation (pending)

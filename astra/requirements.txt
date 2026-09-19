@@ -52,3 +52,6 @@ rq-scheduler>=0.13         # weekly digest cron (Sprint 07; optional — in-proc
 rq-dashboard>=0.8          # web UI for monitoring the job queue
 sentry-sdk[fastapi]>=1.40  # error tracking (api/app.py Sentry init)
 
+# Deep research — LangGraph workflow orchestration
+langgraph==1.2.11
+
