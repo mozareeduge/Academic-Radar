@@ -28,7 +28,7 @@ Source of truth: docs/authority/03_EXECUTION/CLAUDE_CODE_EXECUTION_INTAKE.md (P0
 - [x] `P11` Deadline engine (precision preserved, never invented) (done)
 - [x] `P10a` Gate assessment and hard-blocker logic (done)
 - [x] `P10b` Supervisor 0-3 dimensions and MA three heads (done)
-- [ ] `P10c` Funding arithmetic (Decimal) and 'fully funded' guard (pending)
+- [x] `P10c` Funding arithmetic (Decimal) and 'fully funded' guard (done)
 - [ ] `P10d` Freshness, suggestion rules, and human-only disposition (pending)
 - [ ] `P08a` Structured node output schemas + evidence-bound acceptance (pending)
 - [ ] `P08b` Model provider interface, mock provider, run identity (pending)
