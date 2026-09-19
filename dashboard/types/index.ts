@@ -498,3 +498,41 @@ export interface RadarCase {
   deadline?: string | null;
   freshness?: string | null;
 }
+
+// --- Case Dossier (P15a) -------------------------------------------------------
+export interface GateAssessment {
+  name: string;
+  status: "PASS" | "FAIL" | "UNKNOWN" | "STALE";
+  reason?: string | null;
+}
+
+export interface DimensionAssessment {
+  name: string;
+  value: number | null;
+  unknown: boolean;
+  evidence_count?: number;
+}
+
+export interface CaseBlocker {
+  name: string;
+  status: "FAIL";
+  reason?: string | null;
+}
+
+export interface CaseDeadline {
+  original_text: string | null;
+  precision: "DATE_ONLY" | "LOCAL_TIME" | "OFFSET_AWARE" | "AMBIGUOUS" | null;
+}
+
+export interface CaseDossier {
+  id: string;
+  research_state: string;
+  user_disposition: string;
+  suggested_disposition?: string | null;
+  blockers: CaseBlocker[];
+  unknown_count: number;
+  deadline: CaseDeadline | null;
+  freshness: boolean;
+  gates: GateAssessment[];
+  dimensions: DimensionAssessment[];
+}

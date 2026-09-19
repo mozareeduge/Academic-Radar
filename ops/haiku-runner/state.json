@@ -228,15 +228,17 @@
     "P14": {
       "status": "done",
       "attempts": 1,
+      "feedback": "",
+      "sha": "3fcb1b7dd0931be319266e7a22c378b16d74fb10"
+    },
+    "P15a": {
+      "status": "done",
+      "attempts": 1,
       "feedback": ""
     }
   },
   "ci_red": [],
   "started": "2026-09-19 17:20:20.487085",
-  "in_progress": "P14",
-  "ci_pending": {
-    "sha": "6b3c8a440f7073fa8751e8520a1b758f2c3d4925",
-    "slice": "P13c",
-    "tries": 0
-  }
+  "in_progress": "P15a",
+  "ci_pending": null
 }

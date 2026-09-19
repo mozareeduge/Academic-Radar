@@ -11,6 +11,7 @@ import type {
   AssistantDraft,
   AssistantUsage,
   Bookmark,
+  CaseDossier,
   DeadLetterJob,
   DriftAlert,
   FeedbackIntel,
@@ -744,4 +745,23 @@ export async function fetchKeyUsage(id: number, days = 30): Promise<ApiKeyUsage>
 // --- Radar (P14) -----------------------------------------------------------------
 export function fetchRadarQueue(): Promise<Paginated<RadarCase>> {
   return request<Paginated<RadarCase>>("/api/radar/queue");
+}
+
+// --- Case Dossier (P15a) -------------------------------------------------------
+export function fetchCase(caseId: string): Promise<CaseDossier> {
+  return request<CaseDossier>(`/api/radar/cases/${caseId}`);
+}
+
+interface DispositionRequest {
+  value: string;
+  reason?: string;
+}
+
+export function setUserDisposition(caseId: string, disposition: string, reason?: string): Promise<CaseDossier> {
+  const body: DispositionRequest = { value: disposition };
+  if (reason) body.reason = reason;
+  return request<CaseDossier>(
+    `/api/radar/cases/${caseId}/disposition`,
+    { method: "POST", body: JSON.stringify(body) }
+  );
 }

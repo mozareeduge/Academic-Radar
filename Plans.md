@@ -41,7 +41,7 @@ Source of truth: docs/authority/03_EXECUTION/CLAUDE_CODE_EXECUTION_INTAKE.md (P0
 - [x] `P13c` API: funding, watch, routes/profile, brief hooks (done)
 - [x] `P19a` Application brief: freeze with dependency versions, supersession (done)
 - [x] `P14` UI shell: six-item navigation and Radar queue (done)
-- [ ] `P15a` Case Dossier core: blocker region, suggestion vs decision, gates, dimensions (pending)
+- [x] `P15a` Case Dossier core: blocker region, suggestion vs decision, gates, dimensions (done)
 - [ ] `P15b` Evidence inspector and research coverage (pending)
 - [ ] `P16` PhD experiences: supervisor-first, advertised, structured (pending)
 - [ ] `P17` MA + Funding: three independent heads, linked funding packages (pending)
