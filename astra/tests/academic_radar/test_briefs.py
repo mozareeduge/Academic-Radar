@@ -430,6 +430,90 @@ def test_stale_evidence_blocks_freeze(db_session: Session):
     assert len(exc_info.value.reasons) > 0
 
 
+def test_unknown_hard_gate_blocks_freeze(db_session: Session):
+    """Freeze blocked if a hard gate is UNKNOWN."""
+    now = datetime.now(timezone.utc)
+
+    route_id = "route-unknown-gate"
+    case_id = "case-unknown-gate"
+    prog_id = "target-unknown-gate"
+    gate_id = "gate-unknown"
+
+    db_session.execute(
+        text("""
+            INSERT INTO radar_mozare_routes (id, name, state, created_at, updated_at)
+            VALUES (:id, :name, :state, :created_at, :updated_at)
+        """),
+        {
+            "id": route_id,
+            "name": "MA Programme",
+            "state": "ACTIVE",
+            "created_at": now,
+            "updated_at": now,
+        }
+    )
+
+    db_session.execute(
+        text("""
+            INSERT INTO radar_target_entities (id, kind, display_name, created_at, updated_at)
+            VALUES (:id, :kind, :display_name, :created_at, :updated_at)
+        """),
+        {
+            "id": prog_id,
+            "kind": "Programme",
+            "display_name": "Test Programme",
+            "created_at": now,
+            "updated_at": now,
+        }
+    )
+
+    db_session.execute(
+        text("""
+            INSERT INTO radar_evaluation_cases
+            (id, route_id, target_id, application_route, research_state, user_disposition,
+             application_stage, created_at, updated_at)
+            VALUES (:id, :route_id, :target_id, :application_route, :research_state,
+                    :user_disposition, :application_stage, :created_at, :updated_at)
+        """),
+        {
+            "id": case_id,
+            "route_id": route_id,
+            "target_id": prog_id,
+            "application_route": "MA_PROGRAMME",
+            "research_state": "EVIDENCE_READY",
+            "user_disposition": "ACT",
+            "application_stage": "APPLICATION_OPEN",
+            "created_at": now,
+            "updated_at": now,
+        }
+    )
+
+    db_session.execute(
+        text("""
+            INSERT INTO radar_gate_assessments
+            (id, case_id, requirement, source_authority, result, created_at, updated_at)
+            VALUES (:id, :case_id, :requirement, :source_authority, :result, :created_at, :updated_at)
+        """),
+        {
+            "id": gate_id,
+            "case_id": case_id,
+            "requirement": "English language requirement",
+            "source_authority": "OFFICIAL_PROGRAMME",
+            "result": "UNKNOWN",
+            "created_at": now,
+            "updated_at": now,
+        }
+    )
+
+    db_session.commit()
+
+    with pytest.raises(BriefBlocked) as exc_info:
+        freeze_brief(db_session, case_id)
+
+    assert len(exc_info.value.reasons) > 0
+    assert "Hard gate unknown" in exc_info.value.reasons[0]
+
+
 def test_no_networking_imports():
     """Module does not import smtplib, email, or requests."""
     import academic_radar.domain.briefs as briefs_module

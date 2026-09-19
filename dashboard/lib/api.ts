@@ -11,6 +11,7 @@ import type {
   AssistantDraft,
   AssistantUsage,
   Bookmark,
+  Brief,
   CaseDossier,
   ChangeEventsResponse,
   DeadLetterJob,
@@ -87,9 +88,11 @@ const TOKEN_KEY = "cik_token";
 
 export class ApiError extends Error {
   status: number;
-  constructor(message: string, status: number) {
+  details?: Record<string, unknown>;
+  constructor(message: string, status: number, details?: Record<string, unknown>) {
     super(message);
     this.status = status;
+    this.details = details;
   }
 }
 
@@ -189,7 +192,17 @@ async function request<T>(
     } else {
       message = `Request failed (${res.status})`;
     }
-    throw new ApiError(message || `Request failed (${res.status})`, res.status);
+    const details: Record<string, unknown> = {};
+    try {
+      details.headers = Object.fromEntries(res.headers.entries());
+    } catch {
+      // If headers can't be read, skip them
+    }
+    throw new ApiError(
+      message || `Request failed (${res.status})`,
+      res.status,
+      Object.keys(details).length > 0 ? details : undefined
+    );
   }
   return data as T;
 }
@@ -777,4 +790,26 @@ export function postResearch(caseId: string): Promise<{ run_id: string }> {
     `/api/radar/cases/${caseId}/research`,
     { method: "POST", body: JSON.stringify({}) }
   );
+}
+
+// --- Application Brief (P19b) ------------------------------------------------
+export function freezeBrief(caseId: string): Promise<{
+  id: string;
+  case_id: string;
+  frozen_at: string;
+  state: string;
+}> {
+  return request<{
+    id: string;
+    case_id: string;
+    frozen_at: string;
+    state: string;
+  }>(
+    `/api/radar/cases/${caseId}/brief`,
+    { method: "POST", body: JSON.stringify({}) }
+  );
+}
+
+export function fetchBrief(briefId: string): Promise<Brief> {
+  return request<Brief>(`/api/radar/briefs/${briefId}`);
 }

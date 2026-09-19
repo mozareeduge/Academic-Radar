@@ -37,7 +37,7 @@ from core import observe
 from api.routes import (account, admin, apikeys, assistant, auth, bookmarks,
                         email as email_router, fields as fields_router,
                         invites, matches, opportunities, pipeline, preferences,
-                        profile, radar_cases, radar_evidence, radar_misc, saved, supervisors)
+                        profile, radar_briefs, radar_cases, radar_evidence, radar_misc, saved, supervisors)
 from api.routes.pipeline import jobs_router
 from api.routes.v1 import router as v1_router
 from core.config import FIELD_PROFILE, list_field_profiles
@@ -347,4 +347,5 @@ app.include_router(account.router)
 app.include_router(radar_cases.router)
 app.include_router(radar_evidence.router)
 app.include_router(radar_misc.router)
+app.include_router(radar_briefs.router)
 app.include_router(v1_router)

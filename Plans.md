@@ -46,7 +46,7 @@ Source of truth: docs/authority/03_EXECUTION/CLAUDE_CODE_EXECUTION_INTAKE.md (P0
 - [x] `P16` PhD experiences: supervisor-first, advertised, structured (done)
 - [x] `P17` MA + Funding: three independent heads, linked funding packages (done)
 - [x] `P18` Watch / change UI and source health (done)
-- [ ] `P19b` Application Brief UI + brief API (pending)
+- [x] `P19b` Application Brief UI + brief API (done)
 - [ ] `P20` Responsive + accessibility closure (code side) (pending)
 - [ ] `P21` QA traceability report and full regression (pending)
 - [ ] `P22` Compose worker, RC smoke script, CI job, config docs (pending)

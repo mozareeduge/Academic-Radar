@@ -8,6 +8,7 @@ import { GatesTable } from "@/components/radar/GatesTable";
 import { DimensionsTable } from "@/components/radar/DimensionsTable";
 import { DeadlineDisplay } from "@/components/radar/DeadlineDisplay";
 import { TrackExplorer } from "@/components/radar/TrackExplorer";
+import { BriefTab } from "@/components/radar/BriefTab";
 import { fetchCase, setUserDisposition, ApiError } from "@/lib/api";
 import type { CaseDossier } from "@/types";
 
@@ -109,6 +110,8 @@ export default function CaseDossierPage({ params }: Props) {
               <h2 className="text-lg font-semibold mb-4">Track Explorer</h2>
               <TrackExplorer caseId={caseId} />
             </div>
+
+            <BriefTab caseId={caseId} caseData={caseData} />
           </>
         )}
       </main>

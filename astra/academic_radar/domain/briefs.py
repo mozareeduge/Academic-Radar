@@ -115,12 +115,16 @@ def _check_stale_critical_facts(
                     EvidenceArtifact.id == ce.evidence_artifact_id
                 ).one_or_none()
 
-                if artifact and artifact.retrieved_at < cutoff_time:
-                    reasons.append(
-                        f"Evidence retrieved {(now - artifact.retrieved_at).days} days ago "
-                        f"exceeds threshold of {freshness_threshold} days"
-                    )
-                    return reasons
+                if artifact and artifact.retrieved_at:
+                    retrieved = artifact.retrieved_at
+                    if retrieved.tzinfo is None:
+                        retrieved = retrieved.replace(tzinfo=timezone.utc)
+                    if retrieved < cutoff_time:
+                        reasons.append(
+                            f"Evidence retrieved {(now - retrieved).days} days ago "
+                            f"exceeds threshold of {freshness_threshold} days"
+                        )
+                        return reasons
 
     return reasons
 

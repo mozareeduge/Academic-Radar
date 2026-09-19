@@ -587,3 +587,60 @@ export interface ChangeEventsResponse {
   items: ChangeEvent[];
   source_health?: SourceHealthRow[];
 }
+
+// --- Application Brief (P19b) ------------------------------------------------
+export interface BriefStatement {
+  statement: string;
+  evidence_count: number;
+  freshness: string;
+}
+
+export interface BriefFreezeBlockReason {
+  reason: string;
+}
+
+export interface Brief {
+  id: string;
+  case_id: string;
+  frozen_at: string | null;
+  state: "DRAFT" | "REVIEWED" | "SUPERSEDED";
+  superseded: boolean;
+  content: {
+    case_id: string;
+    frozen_at: string;
+    claims: Array<{
+      id: string;
+      statement: string;
+      claim_type: string;
+      status: string;
+      evidence_ids: Array<{
+        id: string;
+        source_url: string;
+        retrieved_at: string | null;
+      }>;
+      created_at: string;
+    }>;
+    gates: Array<{
+      id: string;
+      requirement: string;
+      result: string;
+      evidence_ids: string[];
+      effective_date: string | null;
+    }>;
+    dimensions: Array<{
+      id: string;
+      dimension_id: string;
+      scale: string;
+      value: number | null;
+      unknowns: string | null;
+    }>;
+    funding_assessments: Array<{
+      id: string;
+      funding_route_id: string;
+      state: string;
+      award_amount: string | null;
+      tuition_amount: string | null;
+      currency: string;
+    }>;
+  } | null;
+}
