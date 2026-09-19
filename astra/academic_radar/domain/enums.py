@@ -123,6 +123,16 @@ class IdentityStatus(str, Enum):
     CANDIDATE = "CANDIDATE"
 
 
+class ResearchRunStatus(str, Enum):
+    QUEUED = "QUEUED"
+    RUNNING = "RUNNING"
+    CANCELLING = "CANCELLING"
+    COMPLETED = "COMPLETED"
+    PARTIAL = "PARTIAL"
+    FAILED = "FAILED"
+    CANCELLED = "CANCELLED"
+
+
 LEGAL_TRANSITIONS: dict[ResearchState, set[ResearchState]] = {
     ResearchState.DISCOVERED: {ResearchState.TRIAGED, ResearchState.ARCHIVED},
     ResearchState.TRIAGED: {ResearchState.RESEARCHING, ResearchState.ARCHIVED},

@@ -30,6 +30,12 @@
     "P02c": {
       "status": "done",
       "attempts": 1,
+      "feedback": "",
+      "sha": "161d1b6717907bbb7e88ecafe2d88e6349d8b171"
+    },
+    "P02d": {
+      "status": "done",
+      "attempts": 1,
       "feedback": ""
     }
   },

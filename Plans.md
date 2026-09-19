@@ -7,7 +7,7 @@ Source of truth: docs/authority/03_EXECUTION/CLAUDE_CODE_EXECUTION_INTAKE.md (P0
 - [x] `P02a` Domain enums + legal state transitions (done)
 - [x] `P02b` Schema group 1: profile, routes, targets, identities (done)
 - [x] `P02c` Schema group 2: evaluation cases and history (done)
-- [ ] `P02d` Schema group 3: protocols, runs, evidence, snapshots (pending)
+- [x] `P02d` Schema group 3: protocols, runs, evidence, snapshots (done)
 - [ ] `P02e` Schema group 4: claims and assessments (pending)
 - [ ] `P02f` Schema group 5: watch, briefs, migration doc (pending)
 - [ ] `P09a` SSRF URL policy (pending)
