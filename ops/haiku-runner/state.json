@@ -252,15 +252,17 @@
     "P17": {
       "status": "done",
       "attempts": 1,
-      "feedback": ""
+      "feedback": "",
+      "sha": "80725f06ce19455352c85facc2e685126f791862"
     },
     "P18": {
-      "status": "pending",
-      "attempts": 0
+      "status": "done",
+      "attempts": 2,
+      "feedback": ""
     }
   },
   "ci_red": [],
   "started": "2026-09-19 17:20:20.487085",
-  "in_progress": "P17",
+  "in_progress": "P18",
   "ci_pending": null
 }

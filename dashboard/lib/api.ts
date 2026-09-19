@@ -12,6 +12,7 @@ import type {
   AssistantUsage,
   Bookmark,
   CaseDossier,
+  ChangeEventsResponse,
   DeadLetterJob,
   DriftAlert,
   FeedbackIntel,
@@ -763,5 +764,17 @@ export function setUserDisposition(caseId: string, disposition: string, reason?:
   return request<CaseDossier>(
     `/api/radar/cases/${caseId}/disposition`,
     { method: "POST", body: JSON.stringify(body) }
+  );
+}
+
+// --- Watch / Changes (P18) ---------------------------------------------------
+export function fetchChangeEvents(): Promise<ChangeEventsResponse> {
+  return request<ChangeEventsResponse>("/api/radar/watch/changes");
+}
+
+export function postResearch(caseId: string): Promise<{ run_id: string }> {
+  return request<{ run_id: string }>(
+    `/api/radar/cases/${caseId}/research`,
+    { method: "POST", body: JSON.stringify({}) }
   );
 }

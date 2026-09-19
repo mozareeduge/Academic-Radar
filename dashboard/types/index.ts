@@ -566,3 +566,24 @@ export interface FundingAssessment {
   unknown_cost_items: string[];
   fully_funded_allowed: boolean;
 }
+
+// --- Watch / Changes (P18) ---------------------------------------------------
+export interface SourceHealthRow {
+  source: string;
+  status: string;
+  last_check?: string | null;
+}
+
+export interface ChangeEvent {
+  id: string;
+  watch_check_id: string;
+  summary: string;
+  material: boolean;
+  at: string;
+  impacted_cases: string[];
+}
+
+export interface ChangeEventsResponse {
+  items: ChangeEvent[];
+  source_health?: SourceHealthRow[];
+}
