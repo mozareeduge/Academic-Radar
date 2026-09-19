@@ -1,0 +1,57 @@
+[
+  {
+    "kind": "Person",
+    "title": "Prof. Anna van den Berg",
+    "url": "https://www.uva.nl/en/profile/b/e/a.van-den-berg/a.van-den-berg.html",
+    "country": "NL",
+    "external_ids": {
+      "orcid": "0000-0001-2345-6789"
+    }
+  },
+  {
+    "kind": "Person",
+    "title": "Dr. Klaus Mueller",
+    "url": "https://tu-berlin.de/en/users/mueller-klaus",
+    "country": "DE",
+    "external_ids": {
+      "openalex_id": "A5013127890"
+    }
+  },
+  {
+    "kind": "PhDOpportunity",
+    "title": "Advertised PhD in Computational Linguistics",
+    "url": "https://www.kuleuven.be/en/phd/jobs/computational-linguistics-2024",
+    "country": "BE",
+    "external_ids": {}
+  },
+  {
+    "kind": "PhDOpportunity",
+    "title": "Advertised PhD in Climate Science",
+    "url": "https://www.universiteit-twente.nl/phd/climate-science-2024",
+    "country": "NL",
+    "external_ids": {}
+  },
+  {
+    "kind": "Programme",
+    "title": "Structured PhD Programme in Neuroscience",
+    "url": "https://www.mpg.de/en/phd-programmes/neuroscience",
+    "country": "DE",
+    "external_ids": {
+      "ror": "02n415q13"
+    }
+  },
+  {
+    "kind": "Programme",
+    "title": "Master's Programme in European Studies",
+    "url": "https://www.universiteitsmuseum.be/en/masters/european-studies?utm_source=discover&utm_campaign=radar",
+    "country": "BE",
+    "external_ids": {}
+  },
+  {
+    "kind": "PhDOpportunity",
+    "title": "Advertised PhD in Computational Linguistics",
+    "url": "https://www.kuleuven.be/en/phd/jobs/computational-linguistics-2024?utm_source=linkedin&utm_campaign=radar_discovery",
+    "country": "BE",
+    "external_ids": {}
+  }
+]
