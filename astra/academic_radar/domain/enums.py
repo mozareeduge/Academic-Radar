@@ -148,6 +148,19 @@ class ResearchRunStatus(str, Enum):
     CANCELLED = "CANCELLED"
 
 
+class WatchTargetState(str, Enum):
+    ACTIVE = "ACTIVE"
+    PAUSED = "PAUSED"
+    ERROR = "ERROR"
+    RETIRED = "RETIRED"
+
+
+class ApplicationBriefState(str, Enum):
+    DRAFT = "DRAFT"
+    REVIEWED = "REVIEWED"
+    SUPERSEDED = "SUPERSEDED"
+
+
 LEGAL_TRANSITIONS: dict[ResearchState, set[ResearchState]] = {
     ResearchState.DISCOVERED: {ResearchState.TRIAGED, ResearchState.ARCHIVED},
     ResearchState.TRIAGED: {ResearchState.RESEARCHING, ResearchState.ARCHIVED},

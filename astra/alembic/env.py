@@ -19,6 +19,7 @@ from db import radar_models_targets
 from db import radar_models_cases
 from db import radar_models_evidence
 from db import radar_models_claims
+from db import radar_models_watch
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

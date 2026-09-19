@@ -75,7 +75,7 @@ class ResearchRun(Base):
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
     case_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("radar_evaluation_cases.id"), index=True
+        String(36), ForeignKey("radar_evaluation_cases.id")
     )
     protocol_version: Mapped[str] = mapped_column(String(64))
     model_id: Mapped[Optional[str]] = mapped_column(String(128))
@@ -107,7 +107,7 @@ class ResearchCoverage(Base):
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
     run_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("radar_research_runs.id"), index=True
+        String(36), ForeignKey("radar_research_runs.id")
     )
     evidence_class: Mapped[str] = mapped_column(String(64))
     status: Mapped[str] = mapped_column(
@@ -138,7 +138,7 @@ class EvidenceArtifact(Base):
     excerpt: Mapped[Optional[str]] = mapped_column(Text)
     structured_extraction: Mapped[Optional[str]] = mapped_column(JSON)
     snapshot_id: Mapped[Optional[str]] = mapped_column(
-        String(36), ForeignKey("radar_source_snapshots.id"), index=True
+        String(36), ForeignKey("radar_source_snapshots.id")
     )
     retrieved_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     published_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
@@ -151,7 +151,7 @@ class EvidenceArtifact(Base):
         ),
         default="UNKNOWN",
     )
-    canonical_origin: Mapped[Optional[str]] = mapped_column(String(512), index=True)
+    canonical_origin: Mapped[Optional[str]] = mapped_column(String(512))
     identity_confidence: Mapped[Optional[float]] = mapped_column(default=None)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
@@ -196,7 +196,7 @@ class SourceAuthority(Base):
     __tablename__ = "radar_source_authorities"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
-    host_pattern: Mapped[str] = mapped_column(String(255), unique=True, index=True)
+    host_pattern: Mapped[str] = mapped_column(String(255), unique=True)
     authority: Mapped[str] = mapped_column(
         String(32),
         CheckConstraint(
@@ -221,12 +221,12 @@ class DiscoveryTrace(Base):
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
     target_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("radar_target_entities.id"), index=True
+        String(36), ForeignKey("radar_target_entities.id")
     )
     source: Mapped[Optional[str]] = mapped_column(String(128))
     query: Mapped[Optional[str]] = mapped_column(Text)
     run_id: Mapped[Optional[str]] = mapped_column(
-        String(36), ForeignKey("radar_research_runs.id"), index=True
+        String(36), ForeignKey("radar_research_runs.id")
     )
     at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)

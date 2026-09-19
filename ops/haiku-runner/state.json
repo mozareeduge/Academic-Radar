@@ -42,6 +42,12 @@
     "P02e": {
       "status": "done",
       "attempts": 1,
+      "feedback": "",
+      "sha": "d34c82b975fe83fb489c14db49b65f77cd909487"
+    },
+    "P02f": {
+      "status": "done",
+      "attempts": 3,
       "feedback": ""
     }
   },

@@ -21,6 +21,7 @@ PY = str(ROOT / ".venv" / "Scripts" / "python.exe")
 HAIKU = "claude-haiku-4-5-20251001"
 TRAILER = "Co-Authored-By: Claude Haiku 4.5 <noreply@anthropic.com>"
 MAX_ATTEMPTS = 3
+BASELINE_RED_JOBS = ("Dependency audits",)  # red at donor seed commit (npm advisories); owner decision, not runner scope
 LIMIT_SLEEP_S = 20 * 60
 LIMIT_RE = re.compile(
     r"(usage limit|rate.?limit|limit reached|hit your limit|limit will reset|resets? (at|in)|"
@@ -197,8 +198,20 @@ def wait_ci(sha):
             bad = [r for r in runs if r["conclusion"] not in ("success", "skipped", "neutral")]
             if not bad:
                 return True, ""
+            failing = []
+            for r in bad:
+                _, jo = sh(["gh", "run", "view", str(r["databaseId"]), "--json", "jobs"])
+                try:
+                    jobs = json.loads(jo)["jobs"]
+                except Exception:
+                    jobs = []
+                failing += [j["name"] for j in jobs if j["conclusion"] not in ("success", "skipped", "neutral")]
+            failing = [n for n in failing if n not in BASELINE_RED_JOBS]
+            if jobs and not failing:
+                return True, ""
             _, logs = sh(["gh", "run", "view", str(bad[0]["databaseId"]), "--log-failed"])
-            return False, "\n".join(logs.splitlines()[-150:])
+            keep = [l for l in logs.splitlines() if not any(b in l for b in BASELINE_RED_JOBS)]
+            return False, "\n".join(keep[-150:])
         time.sleep(60)
     return False, "CI did not finish within 45 minutes"
 
