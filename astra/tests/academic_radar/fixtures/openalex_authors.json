@@ -1,0 +1,30 @@
+{
+  "results": [
+    {
+      "id": "https://openalex.org/A1234567890",
+      "display_name": "Jane Smith",
+      "orcid": "https://orcid.org/0000-0001-2345-6789",
+      "last_known_institutions": [
+        {
+          "id": "https://ror.org/03x3j6d52",
+          "ror": "03x3j6d52",
+          "display_name": "University of Oxford"
+        }
+      ],
+      "works_count": 42
+    },
+    {
+      "id": "https://openalex.org/A0987654321",
+      "display_name": "Jane Smith",
+      "orcid": "https://orcid.org/0000-0005-9876-5432",
+      "last_known_institutions": [
+        {
+          "id": "https://ror.org/01y9et50",
+          "ror": "01y9et50",
+          "display_name": "University of Cambridge"
+        }
+      ],
+      "works_count": 28
+    }
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "results": [
+    {
+      "id": "https://openalex.org/W1111111111",
+      "doi": "https://doi.org/10.1234/example.1",
+      "title": "Machine Learning in Academic Research",
+      "publication_year": 2023,
+      "topics": [
+        {
+          "id": "https://openalex.org/T1",
+          "display_name": "Machine Learning"
+        },
+        {
+          "id": "https://openalex.org/T2",
+          "display_name": "Artificial Intelligence"
+        }
+      ]
+    },
+    {
+      "id": "https://openalex.org/W2222222222",
+      "doi": "https://doi.org/10.1234/example.2",
+      "title": "Neural Networks and Deep Learning",
+      "publication_year": 2022,
+      "topics": [
+        {
+          "id": "https://openalex.org/T3",
+          "display_name": "Deep Learning"
+        }
+      ]
+    }
+  ]
+}
