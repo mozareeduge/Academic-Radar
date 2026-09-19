@@ -41,7 +41,8 @@ class TestCanariesJson:
             assert "slug" in canary
             assert "text" in canary
             assert "status" in canary
-            assert canary["status"] == "unimplemented"
+            assert canary["status"] == "implemented"
+            assert "test_path" in canary
 
 
 class TestPackageImport:

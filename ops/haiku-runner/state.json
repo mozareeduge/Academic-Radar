@@ -270,11 +270,17 @@
     "P20": {
       "status": "done",
       "attempts": 1,
+      "feedback": "",
+      "sha": "c75b052119fedbfc595cb8e6134eff01d494c0e4"
+    },
+    "P21": {
+      "status": "done",
+      "attempts": 1,
       "feedback": ""
     }
   },
   "ci_red": [],
   "started": "2026-09-19 17:20:20.487085",
-  "in_progress": "P20",
+  "in_progress": "P21",
   "ci_pending": null
 }
