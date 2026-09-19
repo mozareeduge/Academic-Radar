@@ -360,3 +360,14 @@ SLICES = [
       [be("tests/academic_radar/test_rc_smoke_static.py"), be_fast()], ci=True,
       note="Docker is not installed locally; the real smoke runs in GitHub Actions."),
 ]
+
+
+SLICES.append(S("P21b", "Oracle traceability: tag or write tests for every uncovered Tier-A oracle", ["P21"],
+    [ORC, QAC + " (section 3 tiers)", "ops/evidence/qa_report.md (UNCOVERED section)", "astra/tests/academic_radar (test names only, use grep)"],
+    ["For each ORACLE id listed under UNCOVERED in ops/evidence/qa_report.md: read its statement in " + ORC + ". Find with grep the existing test in astra/tests/academic_radar whose assertions DIRECTLY exercise that statement.",
+     "If such a test exists: add ONE comment line `# ORACLE-0NN` immediately above that test function (comment only, change no code or assertion in existing test files).",
+     "If no existing test proves it and the behaviour exists in astra/academic_radar or astra/api/routes/radar_*.py: write a NEW real test in astra/tests/academic_radar/test_oracle_gaps.py (new file) whose first line inside the test is a comment `# ORACLE-0NN` and that asserts the oracle statement against real code (no mocking of the thing under test).",
+     "If the behaviour does not exist in code, do NOT write a fake test: append the id and one sentence to the file ops/evidence/oracle_gaps_real.md and continue.",
+     "Finally recompute ops/evidence/qa_report.md: rebuild the ORACLE -> test files table by grep and rewrite the UNCOVERED and Summary sections to match the truth."],
+    ["astra/tests/academic_radar/**", "ops/evidence/**"],
+    ['"{PY}" ops/haiku-runner/checks/check_oracle_tags.py', be_fast()], max_turns=140))
