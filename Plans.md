@@ -21,7 +21,7 @@ Source of truth: docs/authority/03_EXECUTION/CLAUDE_CODE_EXECUTION_INTAKE.md (P0
 - [x] `P05a` OpenAlex connector (fixture-tested) (done)
 - [x] `P05b` OpenAIRE Graph v3 connector (fixture-tested) (done)
 - [x] `P05c` Identity resolution (identity before relation) (done)
-- [ ] `P06a` Snapshots and evidence artifacts (append-only) (pending)
+- [x] `P06a` Snapshots and evidence artifacts (append-only) (done)
 - [ ] `P06b` Independence counting and authority-conflict resolution (pending)
 - [ ] `P07a` Research protocol engine: readiness is computed (pending)
 - [ ] `P07b` Five versioned protocol definitions + loader (pending)
