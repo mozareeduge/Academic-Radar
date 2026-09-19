@@ -47,6 +47,6 @@ Source of truth: docs/authority/03_EXECUTION/CLAUDE_CODE_EXECUTION_INTAKE.md (P0
 - [x] `P17` MA + Funding: three independent heads, linked funding packages (done)
 - [x] `P18` Watch / change UI and source health (done)
 - [x] `P19b` Application Brief UI + brief API (done)
-- [ ] `P20` Responsive + accessibility closure (code side) (pending)
+- [x] `P20` Responsive + accessibility closure (code side) (done)
 - [ ] `P21` QA traceability report and full regression (pending)
 - [ ] `P22` Compose worker, RC smoke script, CI job, config docs (pending)

@@ -12,9 +12,9 @@ export function RadarCaseRow({ case: radarCase }: RadarCaseRowProps) {
     >
       <div className="flex items-start justify-between gap-4">
         <div className="flex flex-col gap-1 flex-1 min-w-0">
-          <h3 className="font-semibold text-foreground line-clamp-2">
+          <h2 className="font-semibold text-foreground line-clamp-2">
             {radarCase.title}
-          </h3>
+          </h2>
           <p className="text-sm text-muted-foreground">{radarCase.route}</p>
         </div>
       </div>
