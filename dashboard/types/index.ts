@@ -554,3 +554,15 @@ export interface Claim {
   authority: string;
   freshness: string;
 }
+
+// --- MA + Funding (P17) -------------------------------------------------------
+export interface FundingAssessment {
+  id: string;
+  funding_route_name: string;
+  currency: string;
+  award: string;
+  tuition: string;
+  known_gap: string;
+  unknown_cost_items: string[];
+  fully_funded_allowed: boolean;
+}
