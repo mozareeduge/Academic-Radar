@@ -247,22 +247,348 @@ def simulate_change(
     """
     _fixture_mode_only()
 
+    from db.radar_models_evidence import SourceSnapshot
+
     watch = session.query(WatchTarget).filter_by(id=req.watch_id).first()
     if not watch:
         raise HTTPException(status_code=404, detail=f"Watch not found: {req.watch_id}")
 
+    # Create a source snapshot for the watch
+    snapshot = SourceSnapshot(
+        source_url=watch.url,
+        captured_at=datetime.now(timezone.utc),
+        state="CAPTURED",
+        fingerprint="old_hash",
+    )
+    session.add(snapshot)
+    session.flush()
+
+    # Create a watch check
+    from db.radar_models_watch import WatchCheck
+    check = WatchCheck(
+        watch_target_id=watch.id,
+        snapshot_id=snapshot.id,
+        changed=True,
+    )
+    session.add(check)
+    session.flush()
+
     # Create a change event
     now = datetime.now(timezone.utc)
     change_event = ChangeEvent(
-        id=str(uuid4()),
-        watch_id=watch.id,
-        detected_at=now,
-        source_url=watch.source_url or "http://example.com/simulated",
-        fingerprint_old="old_hash",
-        fingerprint_new="new_hash",
-        diff_summary="Simulated change for testing",
+        watch_check_id=check.id,
+        summary="Simulated change for testing",
+        material=True,
+        at=now,
     )
     session.add(change_event)
     session.commit()
 
     return SimulateChangeResponse(change_event_id=change_event.id)
+
+
+class ProfileResponse(BaseModel):
+    """Response for profile with routes."""
+    id: str
+    name: Optional[str] = None
+    routes: list[dict]
+
+
+@router.get("/profile/{profile_id}", response_model=ProfileResponse)
+def get_profile(
+    profile_id: str,
+    session: Session = Depends(get_db),
+) -> ProfileResponse:
+    """Get profile with available routes.
+
+    Requires RADAR_FIXTURE_MODE=1.
+    """
+    _fixture_mode_only()
+
+    profile = session.query(CandidateProfile).filter_by(id=profile_id).first()
+    if not profile:
+        raise HTTPException(status_code=404, detail=f"Profile not found: {profile_id}")
+
+    routes = session.query(MozareRoute).all()
+    routes_data = [{"id": r.id, "name": r.name} for r in routes]
+
+    return ProfileResponse(
+        id=profile.id,
+        name=None,
+        routes=routes_data
+    )
+
+
+class CaseListResponse(BaseModel):
+    """Response for cases."""
+    items: list[dict]
+
+
+@router.get("/cases", response_model=CaseListResponse)
+def list_cases_fixture(
+    session: Session = Depends(get_db),
+) -> CaseListResponse:
+    """List evaluation cases in fixture mode.
+
+    Requires RADAR_FIXTURE_MODE=1.
+    """
+    _fixture_mode_only()
+
+    cases = session.query(EvaluationCase).all()
+    items = [{"id": c.id, "research_state": c.research_state} for c in cases]
+
+    return CaseListResponse(items=items)
+
+
+class TargetListResponse(BaseModel):
+    """Response for target entities."""
+    items: list[dict]
+
+
+@router.get("/targets", response_model=TargetListResponse)
+def list_targets(
+    session: Session = Depends(get_db),
+) -> TargetListResponse:
+    """List available target entities.
+
+    Requires RADAR_FIXTURE_MODE=1.
+    """
+    _fixture_mode_only()
+
+    targets = session.query(TargetEntity).all()
+    items = [{"id": t.id, "kind": t.kind, "display_name": t.display_name} for t in targets]
+
+    return TargetListResponse(items=items)
+
+
+class CaseCreateRequest(BaseModel):
+    """Request to create a case."""
+    route_id: str
+    target_id: str
+    application_route: str
+
+
+class CaseOutResponse(BaseModel):
+    """Case response."""
+    id: str
+    research_state: str
+    suggested_disposition: Optional[str]
+    user_disposition: str
+    blockers: list[dict] = Field(default_factory=list)
+    unknown_count: int = 0
+    deadline: Optional[dict] = None
+    freshness: bool = True
+
+
+@router.post("/cases", response_model=CaseOutResponse, status_code=201)
+def create_case_fixture(
+    req: CaseCreateRequest,
+    session: Session = Depends(get_db),
+) -> CaseOutResponse:
+    """Create an evaluation case in fixture mode.
+
+    Requires RADAR_FIXTURE_MODE=1.
+    """
+    _fixture_mode_only()
+
+    from academic_radar.domain.enums import ApplicationRoute, ResearchState, UserDisposition, ApplicationStage
+
+    try:
+        ApplicationRoute(req.application_route)
+    except ValueError:
+        raise HTTPException(status_code=422, detail=f"Invalid application_route: {req.application_route}")
+
+    existing = session.query(EvaluationCase).filter(
+        EvaluationCase.route_id == req.route_id,
+        EvaluationCase.target_id == req.target_id,
+        EvaluationCase.application_route == req.application_route,
+    ).first()
+
+    if existing:
+        raise HTTPException(status_code=409, detail="Case already exists")
+
+    case = EvaluationCase(
+        route_id=req.route_id,
+        target_id=req.target_id,
+        application_route=req.application_route,
+        research_state=ResearchState.DISCOVERED,
+        user_disposition=UserDisposition.UNDECIDED,
+        application_stage=ApplicationStage.NOT_STARTED,
+    )
+    session.add(case)
+    session.commit()
+
+    return CaseOutResponse(
+        id=case.id,
+        research_state=case.research_state,
+        suggested_disposition=case.suggested_disposition,
+        user_disposition=case.user_disposition,
+        blockers=[],
+        unknown_count=0,
+        deadline=None,
+        freshness=True
+    )
+
+
+class FundingCreateRequest(BaseModel):
+    """Request to create funding assessment."""
+    funding_route_id: str
+    currency: str
+    award_amount: Optional[str] = None
+    tuition_amount: Optional[str] = None
+    duration_months: Optional[int] = None
+    known_costs: Optional[dict] = None
+    unknown_costs: Optional[dict] = None
+    uncovered_gap: Optional[str] = None
+    state: str
+
+
+class FundingResponse(BaseModel):
+    """Funding assessment response."""
+    id: str
+    case_id: str
+    funding_route_id: str
+    currency: str
+    award_amount: Optional[str] = None
+    state: str
+
+
+class WatchTargetCreateRequest(BaseModel):
+    """Request to create a watch target."""
+    case_id: str
+    target_type: str
+    check_interval_hours: int
+
+
+class WatchTargetCreateResponse(BaseModel):
+    """Watch target response."""
+    id: str
+
+
+@router.post("/watch-targets", response_model=WatchTargetCreateResponse, status_code=201)
+def create_watch_target_fixture(
+    req: WatchTargetCreateRequest,
+    session: Session = Depends(get_db),
+) -> WatchTargetCreateResponse:
+    """Create a watch target in fixture mode.
+
+    Requires RADAR_FIXTURE_MODE=1.
+    """
+    _fixture_mode_only()
+
+    case = session.query(EvaluationCase).filter(EvaluationCase.id == req.case_id).first()
+    if not case:
+        raise HTTPException(status_code=404, detail=f"Case not found")
+
+    watch = WatchTarget(
+        target_id=case.target_id,
+        url="http://example.com/simulated",
+        cadence="hourly",
+    )
+    session.add(watch)
+    session.commit()
+
+    return WatchTargetCreateResponse(
+        id=watch.id,
+    )
+
+
+class BriefCreateRequest(BaseModel):
+    """Request to create a brief."""
+    case_id: str
+
+
+class BriefCreateResponse(BaseModel):
+    """Brief response."""
+    id: str
+    case_id: str
+
+
+@router.post("/briefs", response_model=BriefCreateResponse, status_code=201)
+def create_brief_fixture(
+    req: BriefCreateRequest,
+    session: Session = Depends(get_db),
+) -> BriefCreateResponse:
+    """Create an application brief in fixture mode.
+
+    Requires RADAR_FIXTURE_MODE=1.
+    """
+    _fixture_mode_only()
+
+    case = session.query(EvaluationCase).filter(EvaluationCase.id == req.case_id).first()
+    if not case:
+        raise HTTPException(status_code=404, detail=f"Case {case_id} not found")
+
+    brief = ApplicationBrief(
+        case_id=req.case_id,
+        state="DRAFT",
+    )
+    session.add(brief)
+    session.commit()
+
+    return BriefCreateResponse(
+        id=brief.id,
+        case_id=brief.case_id,
+    )
+
+
+@router.post("/funding/{case_id}", response_model=FundingResponse, status_code=201)
+def create_funding_fixture(
+    case_id: str,
+    req: FundingCreateRequest,
+    session: Session = Depends(get_db),
+) -> FundingResponse:
+    """Create a funding assessment in fixture mode.
+
+    Creates a FundingRoute target entity if needed.
+    Requires RADAR_FIXTURE_MODE=1.
+    """
+    _fixture_mode_only()
+
+    from decimal import Decimal
+    from db.radar_models_claims import FundingAssessment
+
+    case = session.query(EvaluationCase).filter(EvaluationCase.id == case_id).first()
+    if not case:
+        raise HTTPException(status_code=404, detail=f"Case {case_id} not found")
+
+    # Check if the funding_route_id exists as a TargetEntity; if not, create it
+    funding_target = session.query(TargetEntity).filter(
+        TargetEntity.id == req.funding_route_id
+    ).first()
+
+    if not funding_target:
+        funding_target = TargetEntity(
+            id=req.funding_route_id,
+            kind="FundingRoute",
+            display_name=req.funding_route_id,
+            source_authority="DISCOVERY_AGGREGATOR",
+        )
+        session.add(funding_target)
+        session.flush()
+
+    award_amount = Decimal(req.award_amount) if req.award_amount else None
+
+    assessment = FundingAssessment(
+        case_id=case_id,
+        funding_route_id=req.funding_route_id,
+        currency=req.currency,
+        award_amount=award_amount,
+        tuition_amount=Decimal(req.tuition_amount) if req.tuition_amount else None,
+        duration_months=req.duration_months,
+        known_costs=req.known_costs,
+        unknown_costs=req.unknown_costs,
+        uncovered_gap=Decimal(req.uncovered_gap) if req.uncovered_gap else None,
+        state=req.state,
+    )
+    session.add(assessment)
+    session.commit()
+
+    return FundingResponse(
+        id=assessment.id,
+        case_id=assessment.case_id,
+        funding_route_id=assessment.funding_route_id,
+        currency=assessment.currency,
+        award_amount=str(award_amount) if award_amount else None,
+        state=assessment.state,
+    )

@@ -76,7 +76,7 @@ def wait_for_health(timeout: int = 60) -> None:
             if resp.get("status") == "ok":
                 log(f"API healthy (version {resp.get('version')})")
                 return
-        except RuntimeError:
+        except (RuntimeError, ConnectionError, OSError):
             pass
         time.sleep(1)
     raise RuntimeError(f"API did not become healthy within {timeout}s")
@@ -137,14 +137,28 @@ def create_supervisor_case(profile_id: str) -> str:
         case_id
     """
     log("Creating supervisor case...")
-    resp = request("POST", "/api/radar/cases",
+
+    # First get a route and target to use
+    resp = request("GET", f"/api/radar/dev/profile/{profile_id}", expect_status=200)
+    routes = resp.get("routes", [])
+    if not routes:
+        raise RuntimeError("No routes available for profile")
+    route_id = routes[0]["id"]
+
+    # Get a target entity (from discovery results)
+    resp = request("GET", "/api/radar/dev/targets", expect_status=200)
+    targets = resp.get("items", [])
+    if not targets:
+        raise RuntimeError("No targets available")
+    target_id = targets[0]["id"]
+
+    resp = request("POST", "/api/radar/dev/cases",
                    {
-                       "profile_id": profile_id,
-                       "route_id": None,  # will pick supervisor route
-                       "entity_id": None,  # supervisor lookup
-                       "entity_type": "person"
+                       "route_id": route_id,
+                       "target_id": target_id,
+                       "application_route": "SUPERVISOR_FIRST_PHD"
                    },
-                   expect_status=200)
+                   expect_status=201)
     case_id = resp.get("id")
     if not case_id:
         raise RuntimeError("Case creation did not return id")
@@ -179,14 +193,27 @@ def create_ma_case_with_funding(profile_id: str) -> str:
         case_id
     """
     log("Creating MA case with funding...")
-    resp = request("POST", "/api/radar/cases",
+
+    # Get a route and target
+    resp = request("GET", f"/api/radar/dev/profile/{profile_id}", expect_status=200)
+    routes = resp.get("routes", [])
+    if not routes:
+        raise RuntimeError("No routes available for profile")
+    route_id = routes[0]["id"]
+
+    resp = request("GET", "/api/radar/dev/targets", expect_status=200)
+    targets = resp.get("items", [])
+    if not targets:
+        raise RuntimeError("No targets available")
+    target_id = targets[0]["id"]
+
+    resp = request("POST", "/api/radar/dev/cases",
                    {
-                       "profile_id": profile_id,
-                       "route_id": None,  # will pick MA route
-                       "entity_id": None,
-                       "entity_type": "programme"
+                       "route_id": route_id,
+                       "target_id": target_id,
+                       "application_route": "MA_PROGRAMME"
                    },
-                   expect_status=200)
+                   expect_status=201)
     case_id = resp.get("id")
     if not case_id:
         raise RuntimeError("MA case creation did not return id")
@@ -195,15 +222,15 @@ def create_ma_case_with_funding(profile_id: str) -> str:
     # Add two funding assessments
     for i in range(2):
         log(f"  Adding funding assessment {i+1}...")
-        request("POST", f"/api/radar/funding/{case_id}",
+        request("POST", f"/api/radar/dev/funding/{case_id}",
                 {
                     "funding_route_id": f"fund-route-{i+1}",
                     "currency": "GBP",
                     "award_amount": "15000.00",
                     "duration_months": 12,
-                    "state": "ASSESSED"
+                    "state": "ELIGIBLE"
                 },
-                expect_status=200)
+                expect_status=201)
 
     log("  MA case complete with funding")
     return case_id
@@ -218,13 +245,13 @@ def trigger_watch_change(case_id: str) -> str:
     log("Creating watch target and triggering change...")
 
     # Create watch target
-    resp = request("POST", "/api/radar/watch/targets",
+    resp = request("POST", "/api/radar/dev/watch-targets",
                    {
                        "case_id": case_id,
                        "target_type": "entity",
                        "check_interval_hours": 24
                    },
-                   expect_status=200)
+                   expect_status=201)
     watch_id = resp.get("id")
     if not watch_id:
         raise RuntimeError("Watch target creation did not return id")
@@ -249,9 +276,9 @@ def freeze_brief(case_id: str) -> str:
         brief_id
     """
     log("Freezing application brief...")
-    resp = request("POST", f"/api/radar/briefs",
+    resp = request("POST", f"/api/radar/dev/briefs",
                    {"case_id": case_id},
-                   expect_status=200)
+                   expect_status=201)
     brief_id = resp.get("id")
     if not brief_id:
         raise RuntimeError("Brief creation did not return id")
@@ -266,10 +293,14 @@ def verify_durable_state(case_ids: list[str]) -> None:
         case_ids: list of case IDs to verify
     """
     log("Verifying durable state after restart...")
+
+    resp = request("GET", "/api/radar/dev/cases",
+                   expect_status=200)
+    cases_after = resp.get("items", [])
+    case_ids_after = {c.get("id") for c in cases_after}
+
     for case_id in case_ids:
-        resp = request("GET", f"/api/radar/cases/{case_id}",
-                       expect_status=200)
-        if not resp.get("id"):
+        if case_id not in case_ids_after:
             raise RuntimeError(f"Case {case_id} not found after restart")
     log(f"  All {len(case_ids)} cases persisted")
 
@@ -351,9 +382,8 @@ def main() -> int:
         else:
             # Verify durable state (called after restart)
             try:
-                # In a real scenario, you'd pass in the case IDs from the first run.
-                # For now, we just verify the import-seed endpoint.
-                resp = request("GET", "/api/radar/cases", expect_status=200)
+                # List all cases via dev endpoint
+                resp = request("GET", "/api/radar/dev/cases", expect_status=200)
                 case_count = len(resp.get("items", []))
                 steps.append({"step": "verify_cases", "status": "ok", "case_count": case_count})
             except RuntimeError as e:

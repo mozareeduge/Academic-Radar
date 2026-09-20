@@ -292,12 +292,13 @@
       "sha": "56f8da604c157c9327f20b2e0769cb3b2b9c7787"
     },
     "P22b": {
-      "status": "pending",
-      "attempts": 0
+      "status": "done",
+      "attempts": 1,
+      "feedback": ""
     }
   },
   "ci_red": [],
   "started": "2026-09-19 17:20:20.487085",
-  "in_progress": null,
+  "in_progress": "P22b",
   "ci_pending": null
 }

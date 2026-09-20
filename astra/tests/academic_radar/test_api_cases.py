@@ -371,3 +371,87 @@ class TestStage:
             json={"stage": "PREPARING"}
         )
         assert resp.status_code == 401
+
+
+class TestCaseCreate:
+    """POST /cases."""
+
+    def test_create_case_201(self, client, auth, db_session):
+        """POST /cases creates a case and returns 201."""
+        from db.radar_models_targets import MozareRoute, TargetEntity
+
+        route = MozareRoute(name="Test Route", state="ACTIVE")
+        target = TargetEntity(kind="Person", display_name="Test Person")
+        db_session.add(route)
+        db_session.add(target)
+        db_session.flush()
+
+        resp = client.post(
+            "/api/radar/cases",
+            headers=auth,
+            json={
+                "route_id": route.id,
+                "target_id": target.id,
+                "application_route": "SUPERVISOR_FIRST_PHD"
+            }
+        )
+        assert resp.status_code == 201
+        data = resp.json()
+        assert data["id"]
+        assert data["research_state"] == "DISCOVERED"
+        assert data["user_disposition"] == "UNDECIDED"
+
+    def test_create_case_409_duplicate(self, client, auth, db_session):
+        """POST /cases returns 409 for duplicate (route_id, target_id, application_route)."""
+        case = make_case(db_session, application_route="SUPERVISOR_FIRST_PHD")
+        db_session.commit()
+
+        resp = client.post(
+            "/api/radar/cases",
+            headers=auth,
+            json={
+                "route_id": case.route_id,
+                "target_id": case.target_id,
+                "application_route": "SUPERVISOR_FIRST_PHD"
+            }
+        )
+        assert resp.status_code == 409
+
+    def test_create_case_422_invalid_route(self, client, auth, db_session):
+        """POST /cases returns 422 for invalid application_route."""
+        from db.radar_models_targets import MozareRoute, TargetEntity
+
+        route = MozareRoute(name="Test Route", state="ACTIVE")
+        target = TargetEntity(kind="Person", display_name="Test Person")
+        db_session.add(route)
+        db_session.add(target)
+        db_session.flush()
+
+        resp = client.post(
+            "/api/radar/cases",
+            headers=auth,
+            json={
+                "route_id": route.id,
+                "target_id": target.id,
+                "application_route": "INVALID_ROUTE"
+            }
+        )
+        assert resp.status_code == 422
+
+    def test_create_case_same_target_different_route_allowed(self, client, auth, db_session):
+        """POST /cases allows same route+target with different application_route."""
+        case1 = make_case(db_session, application_route="SUPERVISOR_FIRST_PHD")
+        db_session.commit()
+
+        resp = client.post(
+            "/api/radar/cases",
+            headers=auth,
+            json={
+                "route_id": case1.route_id,
+                "target_id": case1.target_id,
+                "application_route": "MA_PROGRAMME"
+            }
+        )
+        assert resp.status_code == 201
+        data = resp.json()
+        assert data["id"] != case1.id

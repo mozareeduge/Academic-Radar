@@ -51,3 +51,4 @@ Source of truth: docs/authority/03_EXECUTION/CLAUDE_CODE_EXECUTION_INTAKE.md (P0
 - [x] `P21` QA traceability report and full regression (done)
 - [x] `P22` Compose worker, RC smoke script, CI job, config docs (done)
 - [x] `P21b` Oracle traceability: tag or write tests for every uncovered Tier-A oracle (done)
+- [x] `P22b` Make the end-to-end smoke pass locally (case creation + restart durability) (done)

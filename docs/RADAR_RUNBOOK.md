@@ -92,13 +92,26 @@ Required: `RADAR_FIXTURE_MODE=1`
 
 The smoke test verifies end-to-end flow: import, discovery, case research, watch, brief freeze, and durability.
 
-### Without restart:
+### Local smoke test (no Docker required):
+
+This starts a local API in fixture mode, runs the smoke test, restarts the API, and verifies durability on the same database:
+
+```bash
+python scripts/local_smoke.py
+```
+
+Success output:
+```
+LOCAL SMOKE OK (fresh run + restart + durable check)
+```
+
+### Without restart (Docker):
 
 ```bash
 python scripts/rc_smoke.py
 ```
 
-### With restart verification:
+### With restart verification (Docker):
 
 ```bash
 # Run initial test

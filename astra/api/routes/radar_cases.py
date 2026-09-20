@@ -1,11 +1,12 @@
 """api.routes.radar_cases — Radar evaluation cases API endpoints.
 
-Implements GET /cases, GET /cases/{id}, POST /cases/{id}/disposition,
+Implements GET /cases, GET /cases/{id}, POST /cases, POST /cases/{id}/disposition,
 POST /cases/{id}/notes, POST /cases/{id}/stage with explicit response models.
 """
 
 from __future__ import annotations
 
+import os
 from typing import Optional
 from datetime import datetime
 from pydantic import BaseModel, Field, ConfigDict
@@ -17,7 +18,7 @@ from api.deps import get_current_user, get_db
 from db.models import User
 from db.radar_models_cases import EvaluationCase, UserNotes, ApplicationStageHistory
 from academic_radar.domain import disposition as dsp
-from academic_radar.domain.enums import UserDisposition
+from academic_radar.domain.enums import UserDisposition, ApplicationRoute, ApplicationStage, ResearchState
 
 router = APIRouter(prefix="/api/radar", tags=["radar"])
 
@@ -45,6 +46,61 @@ class CaseOut(BaseModel):
 class CaseListResponse(BaseModel):
     """List response for cases."""
     items: list[CaseOut]
+
+
+class CaseCreateIn(BaseModel):
+    """Request body for creating a case."""
+    route_id: str
+    target_id: str
+    application_route: str
+
+
+@router.post("/cases", response_model=CaseOut, status_code=201)
+def create_case(
+    body: CaseCreateIn,
+    user: User = Depends(get_current_user),
+    session: Session = Depends(get_db),
+) -> CaseOut:
+    """Create a new evaluation case.
+
+    Args:
+        body.route_id: MozareRoute ID
+        body.target_id: TargetEntity ID
+        body.application_route: ApplicationRoute enum value
+
+    Returns:
+        201 with case data
+
+    Raises:
+        409 if (route_id, target_id, application_route) already exists
+        422 if application_route is invalid
+    """
+    try:
+        ApplicationRoute(body.application_route)
+    except ValueError:
+        raise HTTPException(status_code=422, detail=f"Invalid application_route: {body.application_route}")
+
+    existing = session.query(EvaluationCase).filter(
+        EvaluationCase.route_id == body.route_id,
+        EvaluationCase.target_id == body.target_id,
+        EvaluationCase.application_route == body.application_route,
+    ).first()
+
+    if existing:
+        raise HTTPException(status_code=409, detail="Case already exists for this route, target, and application_route")
+
+    case = EvaluationCase(
+        route_id=body.route_id,
+        target_id=body.target_id,
+        application_route=body.application_route,
+        research_state=ResearchState.DISCOVERED,
+        user_disposition=UserDisposition.UNDECIDED,
+        application_stage=ApplicationStage.NOT_STARTED,
+    )
+    session.add(case)
+    session.commit()
+
+    return _case_to_out(case)
 
 
 @router.get("/cases", response_model=CaseListResponse)
