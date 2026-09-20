@@ -294,11 +294,20 @@
     "P22b": {
       "status": "done",
       "attempts": 1,
-      "feedback": ""
+      "feedback": "",
+      "sha": "c942b6d98117663b64c65d2c0bf8fbd93b7b24d9"
+    },
+    "P22c": {
+      "status": "pending",
+      "attempts": 0
+    },
+    "P22d": {
+      "status": "pending",
+      "attempts": 0
     }
   },
   "ci_red": [],
   "started": "2026-09-19 17:20:20.487085",
-  "in_progress": "P22b",
+  "in_progress": null,
   "ci_pending": null
 }

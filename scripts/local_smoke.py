@@ -71,11 +71,16 @@ def main():
             failed = rc2 != 0
         finally:
             stop(p)
+    if not failed:
+        stage = sys.argv[sys.argv.index("--stage") + 1] if "--stage" in sys.argv else "all"
+        rc3 = subprocess.run([PY, str(ROOT / "scripts" / "smoke_assertions.py"), str(db), "--stage", stage],
+                             cwd=ROOT).returncode
+        failed = rc3 != 0
     if failed:
         print("--- server log tail ---")
         print(log.read_text(errors="replace")[-3000:])
         return 1
-    print("LOCAL SMOKE OK (fresh run + restart + durable check)")
+    print("LOCAL SMOKE OK (fresh run + restart + durable check + database assertions)")
     return 0
 
 
