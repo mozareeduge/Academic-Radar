@@ -1,6 +1,6 @@
 # Astra — API (Sprint 05, B1; hardened Sprint 10, A2).
 # Build: docker build -t astra-api .
-FROM python:3.11-slim
+FROM python:3.12-slim
 
 WORKDIR /app
 
