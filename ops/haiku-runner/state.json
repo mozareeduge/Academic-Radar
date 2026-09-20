@@ -306,11 +306,16 @@
     "P22d": {
       "status": "done",
       "attempts": 1,
-      "feedback": ""
+      "feedback": "",
+      "sha": "0c30eee99b66d60ac45dff9264b6b86b980e0fe7"
     }
   },
   "ci_red": [],
   "started": "2026-09-19 17:20:20.487085",
-  "in_progress": "P22d",
-  "ci_pending": null
+  "in_progress": null,
+  "ci_pending": {
+    "sha": "0c30eee99b66d60ac45dff9264b6b86b980e0fe7",
+    "slice": "P22d",
+    "tries": 0
+  }
 }
