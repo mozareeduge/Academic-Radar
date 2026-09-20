@@ -22,7 +22,7 @@ from contextlib import asynccontextmanager
 import hmac
 import sentry_sdk
 from core.env import adopt_legacy_env, env_flag
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
@@ -31,7 +31,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
 
-from api.deps import _get_engine
+from api.deps import _get_engine, get_radar_owner
 from api.metrics import metrics
 from core import observe
 from api.routes import (account, admin, apikeys, assistant, auth, bookmarks,
@@ -344,9 +344,9 @@ app.include_router(email_router.router)
 app.include_router(apikeys.router)
 app.include_router(assistant.router)
 app.include_router(account.router)
-app.include_router(radar_cases.router)
-app.include_router(radar_evidence.router)
-app.include_router(radar_misc.router)
-app.include_router(radar_briefs.router)
+app.include_router(radar_cases.router, dependencies=[Depends(get_radar_owner)])
+app.include_router(radar_evidence.router, dependencies=[Depends(get_radar_owner)])
+app.include_router(radar_misc.router, dependencies=[Depends(get_radar_owner)])
+app.include_router(radar_briefs.router, dependencies=[Depends(get_radar_owner)])
 app.include_router(radar_dev.router)
 app.include_router(v1_router)

@@ -198,6 +198,47 @@ class TestCasesList:
         assert resp.status_code == 401
 
 
+class TestRadarOwnerBoundary:
+    def test_second_account_cannot_read_or_change_owner_case(self, client, auth, db_session):
+        case = make_case(db_session)
+        db_session.commit()
+
+        assert client.get(f"/api/radar/cases/{case.id}", headers=auth).status_code == 200
+        created = client.post(
+            "/api/auth/register",
+            json={"email": "bob@example.com", "password": "SuperSecret2"},
+        )
+        assert created.status_code == 201
+        login = client.post(
+            "/api/auth/login",
+            json={"email": "bob@example.com", "password": "SuperSecret2"},
+        )
+        assert login.status_code == 200
+        other = {"Authorization": f"Bearer {login.json()['access_token']}"}
+
+        assert client.get("/api/radar/cases", headers=other).status_code == 403
+        assert client.get(f"/api/radar/cases/{case.id}", headers=other).status_code == 403
+        assert client.post(
+            f"/api/radar/cases/{case.id}/disposition",
+            headers=other,
+            json={"value": "REJECTED"},
+        ).status_code == 403
+        assert client.post(
+            f"/api/radar/cases/{case.id}/notes",
+            headers=other,
+            json={"body": "intrusion"},
+        ).status_code == 403
+        assert client.post(f"/api/radar/cases/{case.id}/brief", headers=other).status_code == 403
+        db_session.refresh(case)
+        assert case.user_disposition == "UNDECIDED"
+
+    def test_unconfigured_owner_fails_closed(self, client, auth, monkeypatch):
+        monkeypatch.delenv("RADAR_OWNER_EMAIL")
+        response = client.get("/api/radar/cases", headers=auth)
+        assert response.status_code == 503
+        assert response.json()["detail"] == "Radar owner is not configured"
+
+
 class TestCasesGet:
     """GET /cases/{id}."""
 
