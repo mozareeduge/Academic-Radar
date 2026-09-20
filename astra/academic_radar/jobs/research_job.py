@@ -100,28 +100,25 @@ def research_case_job(
             log.error("research job %s: missing provider or protocol", run_key)
             return None
 
-        graph = build_graph(provider, protocol, evidence_lookup)
-
         attempt = 0
         last_error_reason = None
 
         while attempt < MAX_RETRIES + 1:
             try:
-                result = graph.invoke(
-                    {
-                        "case_state": {"case_id": case_id},
-                        "sources": [],
-                    }
-                )
-                # Success
-                run.status = "COMPLETED"
-                session.commit()
+                from academic_radar.research.service import run_research
+                result_run_id = run_research(session, case_id, provider, evidence_lookup, run_key=run_key)
                 log.info(
                     "research job %s (case=%s): completed successfully",
                     run_key,
                     case_id,
                 )
-                return result
+                # Return the result (re-fetch the persisted run)
+                persisted_run = session.query(ResearchRun).filter_by(id=result_run_id).first()
+                return {
+                    "id": persisted_run.id,
+                    "case_id": persisted_run.case_id,
+                    "status": persisted_run.status,
+                }
 
             except TimeoutError as e:
                 last_error_reason = "PROVIDER_TIMEOUT"

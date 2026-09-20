@@ -188,7 +188,7 @@ def start_research(
 ) -> ResearchResponse:
     """Start research on a case with mock provider.
 
-    Requires RADAR_FIXTURE_MODE=1.
+    Requires RADAR_FIXTURE_MODE=1. Runs inline and returns the run_id.
     """
     _fixture_mode_only()
 
@@ -196,13 +196,30 @@ def start_research(
     if not case:
         raise HTTPException(status_code=404, detail=f"Case not found: {req.case_id}")
 
-    # In fixture mode, create a placeholder job
-    job_id = str(uuid4())
+    import sys
+    print(f"DEBUG: /research endpoint called for case {req.case_id}", file=sys.stderr, flush=True)
 
-    # Real implementation would enqueue to RQ with mock provider
-    # For now, just return the job ID
+    from academic_radar.research.service import run_research
+    from academic_radar.research.fixtures import fixture_evidence_and_provider
 
-    return ResearchResponse(job_id=job_id)
+    # Set up fixture provider and evidence
+    try:
+        provider, evidence_lookup = fixture_evidence_and_provider(session, case)
+        print(f"DEBUG: fixture_evidence_and_provider completed, got {len(evidence_lookup)} evidence items", file=sys.stderr, flush=True)
+    except Exception as e:
+        print(f"DEBUG: fixture_evidence_and_provider failed: {e}", file=sys.stderr, flush=True)
+        raise HTTPException(status_code=400, detail=f"Fixture setup failed: {str(e)}")
+
+    # Run research inline
+    try:
+        run_id = run_research(session, req.case_id, provider, evidence_lookup)
+        print(f"DEBUG: run_research completed, got run_id {run_id}", file=sys.stderr, flush=True)
+        return ResearchResponse(job_id=run_id)
+    except Exception as e:
+        print(f"DEBUG: run_research failed: {e}", file=sys.stderr, flush=True)
+        import traceback
+        traceback.print_exc(file=sys.stderr)
+        raise HTTPException(status_code=400, detail=f"Research failed: {str(e)}")
 
 
 class ResearchStatusResponse(BaseModel):
@@ -218,12 +235,26 @@ def research_status(
 ) -> ResearchStatusResponse:
     """Poll status of a research job.
 
-    Requires RADAR_FIXTURE_MODE=1.
+    Requires RADAR_FIXTURE_MODE=1. Reads real run row from database.
     """
     _fixture_mode_only()
 
-    # In fixture mode, research completes immediately
-    return ResearchStatusResponse(status="completed")
+    from db.radar_models_evidence import ResearchRun
+
+    run = session.query(ResearchRun).filter_by(id=job_id).first()
+    if not run:
+        raise HTTPException(status_code=404, detail=f"Run not found: {job_id}")
+
+    status_map = {
+        "QUEUED": "pending",
+        "RUNNING": "pending",
+        "COMPLETED": "completed",
+        "PARTIAL": "completed",
+        "FAILED": "failed",
+    }
+    status = status_map.get(run.status, "pending")
+
+    return ResearchStatusResponse(status=status)
 
 
 class SimulateChangeRequest(BaseModel):

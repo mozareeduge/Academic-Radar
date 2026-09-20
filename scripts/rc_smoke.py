@@ -170,16 +170,19 @@ def create_supervisor_case(profile_id: str) -> str:
                    {"case_id": case_id, "use_mock": True},
                    expect_status=200)
     job_id = resp.get("job_id")
+    if not job_id:
+        raise RuntimeError("Research did not return job_id")
 
-    # Wait for research to complete
+    # Poll for research completion
     start = time.time()
     while time.time() - start < 30:
         resp = request("GET", f"/api/radar/dev/research-status/{job_id}",
                        expect_status=200)
-        if resp.get("status") == "completed":
+        status = resp.get("status")
+        if status == "completed":
             log(f"  Research completed")
             return case_id
-        elif resp.get("status") == "failed":
+        elif status == "failed":
             raise RuntimeError(f"Research failed: {resp.get('error')}")
         time.sleep(1)
 
@@ -232,7 +235,31 @@ def create_ma_case_with_funding(profile_id: str) -> str:
                 },
                 expect_status=201)
 
-    log("  MA case complete with funding")
+    # Research the MA case
+    log("  Researching MA case with mock provider...")
+    resp = request("POST", f"/api/radar/dev/research",
+                   {"case_id": case_id, "use_mock": True},
+                   expect_status=200)
+    job_id = resp.get("job_id")
+    if not job_id:
+        raise RuntimeError("Research did not return job_id")
+
+    # Poll for research completion
+    start = time.time()
+    while time.time() - start < 30:
+        resp = request("GET", f"/api/radar/dev/research-status/{job_id}",
+                       expect_status=200)
+        status = resp.get("status")
+        if status == "completed":
+            log(f"  MA research completed")
+            break
+        elif status == "failed":
+            raise RuntimeError(f"MA research failed: {resp.get('error')}")
+        time.sleep(1)
+    else:
+        raise RuntimeError("MA research did not complete within 30s")
+
+    log("  MA case complete with funding and research")
     return case_id
 
 
