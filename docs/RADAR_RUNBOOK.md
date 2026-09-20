@@ -2,6 +2,12 @@
 
 This runbook covers local development and release-candidate deployment of the Mozare Academic Radar using Docker Compose.
 
+The `release-validate` CI job runs on branch pushes and pull requests after the
+backend, dashboard, dependency, and fixture Compose gates. It renders the
+production overlay, checks the dependency graph and fixture setting, builds
+images tagged with the candidate commit SHA, verifies non-root runtime users,
+and starts API, Radar worker, Redis, and dashboard. It does not deploy.
+
 ## Quick Start
 
 ### Prerequisites

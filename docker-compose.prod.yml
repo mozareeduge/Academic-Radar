@@ -21,6 +21,7 @@ services:
     cap_drop: [ALL]
     environment:
       ASTRA_SECRET_KEY: ${ASTRA_SECRET_KEY:?ASTRA_SECRET_KEY must be set in production}
+      RADAR_OWNER_EMAIL: ${RADAR_OWNER_EMAIL:?RADAR_OWNER_EMAIL must name the single Radar owner}
       CORS_ORIGINS: ${CORS_ORIGINS:?CORS_ORIGINS must list the production dashboard origin}
       API_WORKERS: ${API_WORKERS:-1}
       ASTRA_SCHEDULER_ENABLED: ${ASTRA_SCHEDULER_ENABLED:-1}
@@ -63,6 +64,14 @@ services:
       OLLAMA_HOST: ${OLLAMA_HOST:-}
       ADS_API_TOKEN: ${ADS_API_TOKEN:-}
       OPENALEX_MAILTO: ${OPENALEX_MAILTO:-}
+    stop_grace_period: 30s
+
+  radar-worker:
+    restart: unless-stopped
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+    environment:
+      RADAR_FIXTURE_MODE: "0"
     stop_grace_period: 30s
 
   dashboard:
