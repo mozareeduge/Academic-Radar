@@ -298,8 +298,9 @@
       "sha": "c942b6d98117663b64c65d2c0bf8fbd93b7b24d9"
     },
     "P22c": {
-      "status": "pending",
-      "attempts": 0
+      "status": "blocked",
+      "attempts": 1,
+      "blocker": "# Blocker: P22c - Status value mismatch\n\n## What I tried\n- Implemented run_research service to persist research results\n- Created fixtures module to generate mock provider and evidence\n- Updated /research and /research-status endpoints to call run_research\n- Updated rc_smoke.py to research both cases\n- Used status='COMPLETED' based on the database constraint in radar_models_evidence.py\n\n## Exact error\nThe independent verifier smoke_assertions.py queries for:\n```sql\nselect * from radar_research_runs where case_id=? and status='COMPLETE'\n```\n\nBut the database model radar_models_evidence.py defines the CHECK constraint as:\n```\nstatus IN ('QUEUED', 'RUNNING', 'CANCELLING', 'COMPLETED', 'PARTIAL', 'FAILED', 'CANCELLED')\n```\n\nThis means:\n- smoke_assertions expects status='COMPLETE' (3 options matching 'COMPLETE')\n- The database constraint only allows 'COMPLETED' (not 'COMPLETE')\n- The spec says \"status COMPLETE if compute_readiness says ready else PARTIAL\"\n\nAttempting to insert 'COMPLETE' fails the CHECK constraint with:\n```\nsqlalchemy.exc.IntegrityError: CHECK constraint failed: status IN ('QUEUED', 'RUNNING', 'CANCELLING', 'COMPLETED', 'PARTIAL', 'FAILED', 'CANCELLED')\n```\n\n## The ONE question that unblocks you\nShould the database model constraint allow 'COMPLETE' in addition to 'COMPLETED', or should smoke_assertions.py be checking for 'COMPLETED' instead?\n\nNote: I cannot edit smoke_assertions.py (protected) or astra/db/radar_models_evidence.py (not in allowed paths).\n"
     },
     "P22d": {
       "status": "pending",
