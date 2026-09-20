@@ -125,10 +125,10 @@ class TestOpenAIRESearchPersons:
         results = client.search_persons("Alice Johnson")
 
         assert len(results) == 2
-        assert results[0]["display_name"] == "Alice Johnson"
-        assert results[1]["display_name"] == "Alice Johnson"
-        assert results[0]["orcid"] == "0000-0001-2345-6789"
-        assert results[1]["orcid"] == "0000-0005-9876-5432"
+        assert results[0]["display_name"] == "Jane Smith"
+        assert results[1]["display_name"] == "Jane Smith"
+        assert results[0]["orcid"] == "0000-0002-4728-5184"
+        assert results[1]["orcid"] == "0000-0001-2345-6789"
 
     def test_normalized_output_keys(self, mock_http_get, openaire_persons_fixture):
         """Test that output has expected normalized keys."""
@@ -164,7 +164,7 @@ class TestOpenAIRESearchProjects:
 
         called_url = mock_http_get.call_args[0][0]
         assert "/graph/v3" in called_url
-        assert "query=" in called_url
+        assert "search=" in called_url
 
     def test_projects_with_funder_filter(self, mock_http_get, openaire_projects_fixture):
         """Test that funder filter is included when specified."""
@@ -178,7 +178,7 @@ class TestOpenAIRESearchProjects:
         results = client.search_projects("ML", funder="ERC")
 
         called_url = mock_http_get.call_args[0][0]
-        assert "funder=ERC" in called_url
+        assert "fundingShortName=ERC" in called_url
 
 
 class TestOpenAIRESearchOrganizations:
@@ -234,7 +234,7 @@ class TestOpenAIRESearchResearchProducts:
 
         called_url = mock_http_get.call_args[0][0]
         assert "/graph/v3" in called_url
-        assert "/research_products?" in called_url
+        assert "/research-products?" in called_url
 
     def test_research_products_with_author_orcid(
         self, mock_http_get, openaire_research_products_fixture
@@ -253,7 +253,7 @@ class TestOpenAIRESearchResearchProducts:
         )
 
         called_url = mock_http_get.call_args[0][0]
-        assert "author_orcid=0000-0001-2345-6789" in called_url
+        assert "authorId=0000-0001-2345-6789" in called_url
 
 
 class TestOpenAIRERetry:

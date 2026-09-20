@@ -1,16 +1,31 @@
 {
-  "data": [
+  "header": {"numFound": 2, "maxScore": 1.0, "queryTime": 11, "page": 1, "pageSize": 10},
+  "results": [
     {
-      "id": "org_openaire_001",
-      "name": "University of Manchester",
-      "ror": "028nf7y87",
-      "country": "GB"
+      "id": "pegasus________::OpenAIRE____0e2c8a1f",
+      "legalName": "Oxford e-Research Centre, Department of Engineering Science, University of Oxford, Oxford, UK",
+      "legalShortName": "Oxford e-Research Centre",
+      "alternativeNames": ["Oxford e-Research Centre"],
+      "websiteUrl": "http://www.oerc.ox.ac.uk",
+      "country": {"code": "GB", "label": "United Kingdom"},
+      "pids": null,
+      "originalIds": ["oerc_______::openaire"],
+      "collectedFrom": null,
+      "fundings": null
     },
     {
-      "id": "org_openaire_002",
-      "name": "Max Planck Institute for Computer Science",
-      "ror": "027k65916",
-      "country": "DE"
+      "id": "pegasus________::OpenAIRE____3f7d9b2e",
+      "legalName": "University of Manchester",
+      "legalShortName": "University of Manchester",
+      "alternativeNames": ["University of Manchester"],
+      "websiteUrl": "https://www.manchester.ac.uk",
+      "country": {"code": "GB", "label": "United Kingdom"},
+      "pids": [
+        {"scheme": "ror", "value": "https://ror.org/027m9bs27"}
+      ],
+      "originalIds": ["manchester____::openaire"],
+      "collectedFrom": null,
+      "fundings": null
     }
   ]
 }

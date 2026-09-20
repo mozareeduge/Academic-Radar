@@ -1,18 +1,53 @@
 {
-  "data": [
+  "header": {"numFound": 2, "maxScore": 1.0, "queryTime": 18, "page": 1, "pageSize": 10},
+  "results": [
     {
-      "id": "product_openaire_001",
-      "title": "Deep Learning Advances in Computer Vision",
-      "doi": "10.1234/example.2023.001",
-      "publication_year": 2023,
-      "authors": ["Alice Johnson", "Bob Smith"]
+      "id": "doi___________::7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d",
+      "type": "publication",
+      "mainTitle": "Astrophysics: Relativistic Jets",
+      "subTitle": null,
+      "otherTitles": null,
+      "publicationDate": "1986-01-03",
+      "authors": [
+        {"id": null, "fullName": "D M, Eardley", "name": "D M", "surname": "Eardley", "rank": 1, "pid": null}
+      ],
+      "pids": [
+        {"scheme": "doi", "value": "10.1126/science.778-a"},
+        {"scheme": "pmid", "value": "17769575"}
+      ],
+      "bestAccessRight": {"code": "c_16ec3f", "label": "OPEN"},
+      "language": {"code": "eng", "label": "English"},
+      "publisher": null,
+      "projects": null,
+      "container": null,
+      "instances": null,
+      "subjects": null,
+      "descriptions": null,
+      "countries": null
     },
     {
-      "id": "product_openaire_002",
-      "title": "Scalable Graph Neural Networks",
-      "doi": "10.1234/example.2024.001",
-      "publication_year": 2024,
-      "authors": ["Alice Johnson", "Carol White", "David Brown"]
+      "id": "doi___________::2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e",
+      "type": "publication",
+      "mainTitle": "Deep Learning Advances in Computer Vision",
+      "subTitle": null,
+      "otherTitles": null,
+      "publicationDate": "2023-06-15",
+      "authors": [
+        {"id": "0000-0001-2345-6789", "fullName": "Jane Smith", "name": "Jane", "surname": "Smith", "rank": 1, "pid": null},
+        {"id": null, "fullName": "Bob Smith", "name": "Bob", "surname": "Smith", "rank": 2, "pid": null}
+      ],
+      "pids": [
+        {"scheme": "doi", "value": "10.1234/example.2023.001"}
+      ],
+      "bestAccessRight": {"code": "c_16ec3f", "label": "OPEN"},
+      "language": {"code": "eng", "label": "English"},
+      "publisher": null,
+      "projects": null,
+      "container": null,
+      "instances": null,
+      "subjects": null,
+      "descriptions": null,
+      "countries": null
     }
   ]
 }

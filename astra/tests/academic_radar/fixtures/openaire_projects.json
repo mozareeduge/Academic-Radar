@@ -1,20 +1,65 @@
 {
-  "data": [
+  "header": {"numFound": 2, "maxScore": 1.0, "queryTime": 15, "page": 1, "pageSize": 10},
+  "results": [
     {
-      "id": "project_openaire_001",
-      "title": "Advanced Machine Learning Research Initiative",
-      "funder": "European Research Council",
-      "start_year": 2021,
-      "end_year": 2024,
-      "funding_amount": 2500000
+      "id": "snsf________::64558b650f6d7d597c7ceeede3742b71",
+      "code": "162930",
+      "acronym": null,
+      "title": "Computational Astrophysics",
+      "websiteUrl": null,
+      "startDate": "2015-10-01",
+      "endDate": "2019-05-31",
+      "callIdentifier": null,
+      "keywords": "Astronomy, Astrophysics and Space Sciences",
+      "openAccessMandateForPublications": false,
+      "openAccessMandateForDataset": false,
+      "subjects": null,
+      "summary": null,
+      "fundings": [
+        {
+          "shortName": "SNSF",
+          "name": "Swiss National Science Foundation",
+          "jurisdiction": "CH",
+          "fundingStream": {
+            "id": "SNSF::Projects::Project funding",
+            "description": "Projects - Project funding"
+          }
+        }
+      ],
+      "funding": null,
+      "granted": {"currency": null, "totalCost": 0.0, "fundedAmount": 658574.0},
+      "h2020Programmes": null,
+      "links": null
     },
     {
-      "id": "project_openaire_002",
-      "title": "Network Analysis and Graph Theory",
-      "funder": "Horizon Europe",
-      "start_year": 2022,
-      "end_year": 2025,
-      "funding_amount": 1800000
+      "id": "snsf________::1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d",
+      "code": "162931",
+      "acronym": "MLASTRO",
+      "title": "Machine Learning for Astrophysics",
+      "websiteUrl": null,
+      "startDate": "2016-01-01",
+      "endDate": "2019-12-31",
+      "callIdentifier": null,
+      "keywords": "Astronomy, Astrophysics and Space Sciences",
+      "openAccessMandateForPublications": true,
+      "openAccessMandateForDataset": false,
+      "subjects": null,
+      "summary": null,
+      "fundings": [
+        {
+          "shortName": "SNSF",
+          "name": "Swiss National Science Foundation",
+          "jurisdiction": "CH",
+          "fundingStream": {
+            "id": "SNSF::Projects::Project funding",
+            "description": "Projects - Project funding"
+          }
+        }
+      ],
+      "funding": null,
+      "granted": {"currency": null, "totalCost": 0.0, "fundedAmount": 500000.0},
+      "h2020Programmes": null,
+      "links": null
     }
   ]
 }

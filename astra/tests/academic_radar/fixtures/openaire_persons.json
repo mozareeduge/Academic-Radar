@@ -1,16 +1,45 @@
 {
-  "data": [
+  "header": {"numFound": 2, "maxScore": 1.0, "queryTime": 12, "page": 1, "pageSize": 10},
+  "results": [
     {
-      "id": "person_openaire_001",
-      "name": "Alice Johnson",
-      "orcid": "0000-0001-2345-6789",
-      "research_products_count": 15
+      "id": "orcid________::736bbcab6c2d2466717519b6f9f00727",
+      "originalId": ["0000-0002-4728-5184"],
+      "pid": [
+        {
+          "value": "0000-0002-4728-5184",
+          "typeCode": "orcid",
+          "typeLabel": "Open Researcher and Contributor ID"
+        }
+      ],
+      "givenName": "Jane",
+      "familyName": "Smith",
+      "alternativeNames": ["Jane Smith", "Jane H Smith"],
+      "biography": "Information professional.",
+      "coAuthors": null,
+      "consent": null,
+      "context": null,
+      "indicator": null,
+      "subject": null
     },
     {
-      "id": "person_openaire_002",
-      "name": "Alice Johnson",
-      "orcid": "0000-0005-9876-5432",
-      "research_products_count": 8
+      "id": "orcid________::9a1f2b3c4d5e6f708192a3b4c5d6e7f8",
+      "originalId": ["0000-0001-2345-6789"],
+      "pid": [
+        {
+          "value": "0000-0001-2345-6789",
+          "typeCode": "orcid",
+          "typeLabel": "Open Researcher and Contributor ID"
+        }
+      ],
+      "givenName": "Jane",
+      "familyName": "Smith",
+      "alternativeNames": ["Jane Smith"],
+      "biography": "Researcher.",
+      "coAuthors": null,
+      "consent": null,
+      "context": null,
+      "indicator": null,
+      "subject": null
     }
   ]
 }
