@@ -86,6 +86,9 @@ jobs:
           } > .env
       - name: Start compose stack
         run: docker compose --profile redis up -d --build
+      - name: Container logs (on failure)
+        if: failure()
+        run: docker compose --profile redis logs --no-color --tail 120 api radar-worker
       - name: Run smoke test
         run: python scripts/rc_smoke.py
         timeout-minutes: 5
