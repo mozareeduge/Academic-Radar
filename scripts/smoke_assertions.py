@@ -38,8 +38,8 @@ check(len(ma) >= 1, "no MA programme case exists")
 
 
 def verify_research(case, mandatory, label):
-    runs = q("select * from radar_research_runs where case_id=? and status='COMPLETE'", case["id"])
-    check(len(runs) >= 1, f"{label}: no COMPLETE research run persisted")
+    runs = q("select * from radar_research_runs where case_id=? and status='COMPLETED'", case["id"])
+    check(len(runs) >= 1, f"{label}: no COMPLETED research run persisted")
     if not runs:
         return
     check(runs[0]["protocol_version"] == "1.0.0", f"{label}: run did not record protocol_version 1.0.0")
