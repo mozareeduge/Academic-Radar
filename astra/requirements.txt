@@ -1,5 +1,6 @@
 # Core (required)
 requests>=2.31
+urllib3>=2.0,<3          # Radar safe_fetch pins validated DNS addresses with connection pools
 requests[socks]           # SOCKS proxy support (socks5h:// URLs)
 beautifulsoup4>=4.12
 feedparser>=6.0

@@ -22,6 +22,7 @@
 
 # --- core engine -------------------------------------------------------------
 requests>=2.31
+urllib3>=2.0,<3          # Radar safe_fetch transport
 requests[socks]           # SOCKS proxy support (socks5h:// URLs — V2Ray etc.)
 beautifulsoup4>=4.12
 feedparser>=6.0
