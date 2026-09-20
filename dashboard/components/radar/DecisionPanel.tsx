@@ -2,15 +2,16 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import type { UserDisposition } from "@/types";
 
 interface DecisionPanelProps {
   suggestedDisposition?: string | null;
   userDisposition: string;
-  onDispositionChange: (disposition: string) => Promise<void>;
+  onDispositionChange: (disposition: UserDisposition) => Promise<void>;
   isLoading?: boolean;
 }
 
-const DISPOSITION_OPTIONS = ["UNDECIDED", "STRONG", "WATCH", "ACT", "REJECTED"];
+const DISPOSITION_OPTIONS: UserDisposition[] = ["UNDECIDED", "STRONG", "WATCH", "ACT", "REJECTED"];
 
 export function DecisionPanel({
   suggestedDisposition,
@@ -20,7 +21,7 @@ export function DecisionPanel({
 }: DecisionPanelProps) {
   const [pendingDisposition, setPendingDisposition] = useState<string | null>(null);
 
-  const handleDispositionChange = async (disposition: string) => {
+  const handleDispositionChange = async (disposition: UserDisposition) => {
     setPendingDisposition(disposition);
     try {
       await onDispositionChange(disposition);
@@ -30,10 +31,10 @@ export function DecisionPanel({
   };
 
   return (
-    <div className="flex flex-col gap-6 mb-6">
+    <div className="flex flex-col gap-6 ">
       {/* System suggestion block */}
       {suggestedDisposition && (
-        <div className="rounded-md border border-border p-4 bg-surface-subtle">
+        <div className="border border-border bg-muted/40 p-4">
           <h3 className="text-sm font-semibold text-muted-foreground mb-2">
             System suggests
           </h3>
@@ -44,7 +45,7 @@ export function DecisionPanel({
       )}
 
       {/* User decision block */}
-      <div className="rounded-md border border-border p-4">
+      <div className="border border-border p-4">
         <h3 className="text-sm font-semibold text-muted-foreground mb-3">
           Your decision
         </h3>
@@ -55,6 +56,7 @@ export function DecisionPanel({
               variant={userDisposition === option ? "default" : "outline"}
               onClick={() => handleDispositionChange(option)}
               disabled={isLoading || pendingDisposition !== null}
+              aria-pressed={userDisposition === option}
               size="sm"
             >
               {option.charAt(0) + option.slice(1).toLowerCase()}

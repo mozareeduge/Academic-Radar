@@ -1,37 +1,77 @@
 "use client";
 
+import Link from "next/link";
+import { useParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
+import { ArrowLeft, RefreshCw } from "lucide-react";
 import AuthGate from "@/components/AuthGate";
 import { BlockerRegion } from "@/components/radar/BlockerRegion";
 import { DecisionPanel } from "@/components/radar/DecisionPanel";
-import { GatesTable } from "@/components/radar/GatesTable";
-import { DimensionsTable } from "@/components/radar/DimensionsTable";
 import { DeadlineDisplay } from "@/components/radar/DeadlineDisplay";
-import { TrackExplorer } from "@/components/radar/TrackExplorer";
 import { BriefTab } from "@/components/radar/BriefTab";
-import { fetchCase, setUserDisposition, ApiError } from "@/lib/api";
-import type { CaseDossier } from "@/types";
+import { CoveragePanel } from "@/components/radar/CoveragePanel";
+import { FundingPackages } from "@/components/radar/FundingPackages";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  fetchCase,
+  fetchCoverage,
+  fetchFunding,
+  setUserDisposition,
+  ApiError,
+} from "@/lib/api";
+import type { CaseDossier, CoverageResponse, FundingAssessment, UserDisposition } from "@/types";
 
-interface Props {
-  params: { id: string };
-}
-
-export default function CaseDossierPage({ params }: Props) {
+export default function CaseDossierPage() {
+  const params = useParams<{ id: string }>();
   const caseId = params.id;
 
   const [caseData, setCaseData] = useState<CaseDossier | null>(null);
+  const [coverage, setCoverage] = useState<CoverageResponse | null>(null);
+  const [funding, setFunding] = useState<FundingAssessment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [secondaryErrors, setSecondaryErrors] = useState<string[]>([]);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
+    setSecondaryErrors([]);
     try {
       const data = await fetchCase(caseId);
       setCaseData(data);
+
+      const [coverageResult, fundingResult] = await Promise.allSettled([
+        fetchCoverage(caseId),
+        fetchFunding(caseId),
+      ]);
+
+      const nextSecondaryErrors: string[] = [];
+      if (coverageResult.status === "fulfilled") {
+        setCoverage(coverageResult.value);
+      } else {
+        setCoverage(null);
+        const reason = coverageResult.reason;
+        if (!(reason instanceof ApiError && reason.status === 404)) {
+          nextSecondaryErrors.push("Research coverage could not be loaded.");
+        }
+      }
+
+      if (fundingResult.status === "fulfilled") {
+        setFunding(fundingResult.value.items);
+      } else {
+        setFunding([]);
+        const reason = fundingResult.reason;
+        if (!(reason instanceof ApiError && reason.status === 404)) {
+          nextSecondaryErrors.push("Funding assessments could not be loaded.");
+        }
+      }
+      setSecondaryErrors(nextSecondaryErrors);
     } catch (e) {
       setError(e instanceof ApiError ? e.message : "Could not load case");
       setCaseData(null);
+      setCoverage(null);
+      setFunding([]);
     } finally {
       setLoading(false);
     }
@@ -42,8 +82,9 @@ export default function CaseDossierPage({ params }: Props) {
     void load();
   }, [load]);
 
-  const handleDispositionChange = async (disposition: string) => {
+  const handleDispositionChange = async (disposition: UserDisposition) => {
     if (!caseData) return;
+    setError(null);
     try {
       const updated = await setUserDisposition(caseId, disposition);
       setCaseData(updated);
@@ -54,28 +95,52 @@ export default function CaseDossierPage({ params }: Props) {
 
   return (
     <AuthGate>
-      <main className="flex flex-col gap-6">
+      <div className="flex min-w-0 flex-col gap-6">
+        <div>
+          <Link href="/radar" className="inline-flex items-center gap-1 text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
+            <ArrowLeft className="size-4" aria-hidden />
+            Radar
+          </Link>
+        </div>
+
         {loading && (
-          <div className="text-center text-muted-foreground">Loading case…</div>
+          <div className="space-y-3" aria-label="Loading case">
+            <Skeleton className="h-14 w-full" />
+            <Skeleton className="h-28 w-full" />
+            <Skeleton className="h-36 w-full" />
+          </div>
         )}
 
         {error && (
-          <div className="rounded-md border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
-            {error}
+          <div role="alert" className="flex flex-col gap-3 border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive sm:flex-row sm:items-center sm:justify-between">
+            <span>{error}</span>
+            {!caseData && (
+              <Button type="button" size="sm" variant="outline" onClick={() => void load()}>
+                Retry
+              </Button>
+            )}
           </div>
         )}
 
         {!loading && caseData && (
           <>
-            <div className="flex flex-col gap-1">
-              <h1 className="text-2xl font-semibold">Case Details</h1>
-              <p className="text-sm text-muted-foreground">{caseData.id}</p>
-            </div>
+            <header className="border-b border-border pb-4">
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div className="min-w-0">
+                  <h1 className="text-2xl font-semibold">Case dossier</h1>
+                  <p className="mt-1 break-all font-mono text-xs text-muted-foreground">{caseData.id}</p>
+                </div>
+                <div className="flex flex-wrap items-center gap-2 text-xs">
+                  <span className="border border-border bg-muted px-2 py-1 font-medium">{caseData.research_state}</span>
+                  <span className="inline-flex items-center gap-1 border border-border px-2 py-1 text-muted-foreground">
+                    <RefreshCw className="size-3" aria-hidden />
+                    {caseData.freshness ? "Fresh" : "Stale"}
+                  </span>
+                </div>
+              </div>
+            </header>
 
-            <BlockerRegion
-              blockers={caseData.blockers}
-              unknownCount={caseData.unknown_count}
-            />
+            <BlockerRegion blockers={caseData.blockers} unknownCount={caseData.unknown_count} />
 
             <DecisionPanel
               suggestedDisposition={caseData.suggested_disposition}
@@ -83,38 +148,29 @@ export default function CaseDossierPage({ params }: Props) {
               onDispositionChange={handleDispositionChange}
             />
 
-            {caseData.deadline && (
-              <div className="rounded-md border border-border p-4">
-                <h2 className="text-sm font-semibold text-muted-foreground mb-2">
-                  Deadline
-                </h2>
+            {caseData.deadline && caseData.deadline.original_text && (
+              <section className="border border-border p-4" aria-labelledby="deadline-title">
+                <h2 id="deadline-title" className="mb-2 text-sm font-semibold text-muted-foreground">Deadline</h2>
                 <DeadlineDisplay deadline={caseData.deadline} />
+              </section>
+            )}
+
+            {secondaryErrors.length > 0 && (
+              <div role="status" className="border border-border bg-muted/30 p-3 text-sm text-muted-foreground">
+                {secondaryErrors.join(" ")}
               </div>
             )}
 
-            {caseData.gates.length > 0 && (
-              <div>
-                <h2 className="text-lg font-semibold mb-4">Gates</h2>
-                <GatesTable gates={caseData.gates} />
-              </div>
+            {coverage && (
+              <CoveragePanel statuses={coverage.coverage} protocolVersion={coverage.protocol_version} />
             )}
 
-            {caseData.dimensions.length > 0 && (
-              <div>
-                <h2 className="text-lg font-semibold mb-4">Dimensions</h2>
-                <DimensionsTable dimensions={caseData.dimensions} />
-              </div>
-            )}
-
-            <div className="rounded-md border border-border p-4">
-              <h2 className="text-lg font-semibold mb-4">Track Explorer</h2>
-              <TrackExplorer caseId={caseId} />
-            </div>
+            <FundingPackages assessments={funding} />
 
             <BriefTab caseId={caseId} caseData={caseData} />
           </>
         )}
-      </main>
+      </div>
     </AuthGate>
   );
 }

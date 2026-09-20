@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import CaseDossier from "@/app/(app)/cases/[id]/page";
 import * as api from "@/lib/api";
@@ -11,7 +11,12 @@ jest.mock("next/navigation", () => ({
 // Mock the API
 jest.mock("@/lib/api", () => ({
   fetchCase: jest.fn(),
+  fetchCoverage: jest.fn(),
+  fetchFunding: jest.fn(),
   setUserDisposition: jest.fn(),
+  freezeBrief: jest.fn(),
+  fetchBrief: jest.fn(),
+  fetchClaimEvidence: jest.fn(),
   fetchMe: jest.fn(() => Promise.resolve({ user_id: 1, email: "test@example.com" })),
   fetchAuthConfig: jest.fn(() => Promise.resolve({ auth_mode: "password", invite_required: false })),
   fetchCurrentUser: jest.fn(() => Promise.resolve({ user_id: 1, email: "test@example.com" })),
@@ -39,28 +44,22 @@ const mockCase = {
     original_text: "15 January 2027",
     precision: "DATE_ONLY"
   },
-  freshness: true,
-  gates: [
-    { name: "English requirement", status: "PASS", reason: "Verified on 10 Sep 2026" },
-  ],
-  dimensions: [
-    { name: "Admission viability", value: 2, unknown: false },
-    { name: "Funding viability", value: null, unknown: true },
-    { name: "Strategic value", value: 1, unknown: false },
-  ]
+  freshness: true
 };
 
 describe("Case Dossier", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     (api.fetchCase as jest.Mock).mockResolvedValue(mockCase);
+    (api.fetchCoverage as jest.Mock).mockResolvedValue({ coverage: [], protocol_version: "1.0" });
+    (api.fetchFunding as jest.Mock).mockResolvedValue({ items: [] });
   });
 
   it("renders blocker region as first landmark", async () => {
-    render(<CaseDossier params={{ id: "case-123" }} />);
+    render(<CaseDossier />);
 
     // Wait for async content
-    await screen.findByRole("main");
+    await screen.findByRole("heading", { name: "Case dossier" });
 
     // Find the blocker region as first landmark
     const landmarks = screen.getAllByRole("region");
@@ -71,7 +70,7 @@ describe("Case Dossier", () => {
     const caseWithoutBlockers = { ...mockCase, blockers: [], unknown_count: 0 };
     (api.fetchCase as jest.Mock).mockResolvedValue(caseWithoutBlockers);
 
-    render(<CaseDossier params={{ id: "case-123" }} />);
+    render(<CaseDossier />);
 
     await screen.findByText("No formal blockers found");
   });
@@ -80,15 +79,15 @@ describe("Case Dossier", () => {
     const caseUnknown = { ...mockCase, blockers: [], unknown_count: 2 };
     (api.fetchCase as jest.Mock).mockResolvedValue(caseUnknown);
 
-    render(<CaseDossier params={{ id: "case-123" }} />);
+    render(<CaseDossier />);
 
     await screen.findByText("Eligibility unknown");
   });
 
   it("renders decision panel with system suggestion and user decision separately", async () => {
-    render(<CaseDossier params={{ id: "case-123" }} />);
+    render(<CaseDossier />);
 
-    await screen.findByRole("main");
+    await screen.findByRole("heading", { name: "Case dossier" });
 
     // System suggestion section
     expect(screen.getByText("System suggests")).toBeInTheDocument();
@@ -102,28 +101,12 @@ describe("Case Dossier", () => {
     expect(decisionButtons.length).toBeGreaterThan(0);
   });
 
-  it("shows Unknown as text for dimension, never 0", async () => {
-    render(<CaseDossier params={{ id: "case-123" }} />);
-
-    const dimensionsTable = await screen.findByRole("table", { name: /assessment dimensions/i });
-    const rows = within(dimensionsTable).getAllByRole("row");
-
-    // Find row with Funding viability (which has unknown: true)
-    const fundingRow = rows.find(row =>
-      within(row).queryByText("Funding viability")
-    );
-
-    expect(fundingRow).toBeInTheDocument();
-    expect(within(fundingRow!).getByText("Unknown")).toBeInTheDocument();
-    expect(within(fundingRow!).queryByText("0")).not.toBeInTheDocument();
-  });
-
   it("does not change suggestion block when user changes decision", async () => {
     (api.setUserDisposition as jest.Mock).mockResolvedValue({ ...mockCase, user_disposition: "STRONG" });
 
-    render(<CaseDossier params={{ id: "case-123" }} />);
+    render(<CaseDossier />);
 
-    await screen.findByRole("main");
+    await screen.findByRole("heading", { name: "Case dossier" });
 
     const strongButton = screen.getByRole("button", { name: /strong/i });
     await userEvent.click(strongButton);
@@ -137,18 +120,18 @@ describe("Case Dossier", () => {
   });
 
   it("shows deadline with original wording and precision label", async () => {
-    render(<CaseDossier params={{ id: "case-123" }} />);
+    render(<CaseDossier />);
 
     const deadline = await screen.findByText(/15 January 2027/);
     expect(deadline).toBeInTheDocument();
     expect(deadline.parentElement).toHaveTextContent("time not stated");
   });
 
-  it("renders gates table", async () => {
-    render(<CaseDossier params={{ id: "case-123" }} />);
-
-    const gatesTable = await screen.findByRole("table", { name: /formal gates/i });
-    expect(gatesTable).toBeInTheDocument();
-    expect(within(gatesTable).getByText("English requirement")).toBeInTheDocument();
+  it("does not render fixture-only gates or dimensions from CaseOut", async () => {
+    render(<CaseDossier />);
+    await screen.findByRole("heading", { name: "Case dossier" });
+    expect(screen.queryByRole("table", { name: /formal gates/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("table", { name: /assessment dimensions/i })).not.toBeInTheDocument();
   });
+
 });

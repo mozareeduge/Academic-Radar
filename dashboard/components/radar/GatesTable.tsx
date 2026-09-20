@@ -23,6 +23,8 @@ function getStatusIcon(status: string): string {
       return "?";
     case "STALE":
       return "↻";
+    case "NOT_APPLICABLE":
+      return "—";
     default:
       return "";
   }
@@ -38,6 +40,8 @@ function getStatusLabel(status: string): string {
       return "Unknown";
     case "STALE":
       return "Needs recheck";
+    case "NOT_APPLICABLE":
+      return "Not applicable";
     default:
       return status;
   }
@@ -45,7 +49,7 @@ function getStatusLabel(status: string): string {
 
 export function GatesTable({ gates }: GatesTableProps) {
   return (
-    <div className="rounded-md border mb-6">
+    <div className="border">
       <Table>
         <TableCaption className="sr-only">Formal gates and requirements</TableCaption>
         <TableHeader>

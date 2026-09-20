@@ -15,7 +15,7 @@ interface DimensionsTableProps {
 
 export function DimensionsTable({ dimensions }: DimensionsTableProps) {
   return (
-    <div className="rounded-md border mb-6">
+    <div className="border">
       <Table>
         <TableCaption className="sr-only">Assessment dimensions</TableCaption>
         <TableHeader>

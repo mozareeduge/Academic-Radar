@@ -26,16 +26,16 @@ export function ClaimRow({ claim, onEvidenceClick }: ClaimRowProps) {
         <p className="font-medium text-sm text-foreground">{claim.statement}</p>
 
         <div className="flex flex-wrap gap-2 text-xs">
-          <span className="px-2 py-1 rounded bg-surface-subtle text-muted-foreground">
+          <span className="px-2 py-1 border border-border bg-muted text-muted-foreground">
             {claim.type}
           </span>
-          <span className="px-2 py-1 rounded bg-surface-subtle text-muted-foreground">
+          <span className="px-2 py-1 border border-border bg-muted text-muted-foreground">
             {claim.status}
           </span>
-          <span className="px-2 py-1 rounded bg-surface-subtle text-muted-foreground">
+          <span className="px-2 py-1 border border-border bg-muted text-muted-foreground">
             {claim.authority}
           </span>
-          <span className="px-2 py-1 rounded bg-surface-subtle text-muted-foreground">
+          <span className="px-2 py-1 border border-border bg-muted text-muted-foreground">
             {claim.freshness}
           </span>
         </div>
@@ -46,7 +46,7 @@ export function ClaimRow({ claim, onEvidenceClick }: ClaimRowProps) {
             ref={buttonRef}
             onClick={handleClick}
             onKeyDown={handleKeyDown}
-            className="px-3 py-1 text-xs rounded border border-border hover:bg-surface-raised focus:outline-none focus:ring-2 focus:ring-focus"
+            className="px-3 py-1 text-xs border border-border hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             aria-label={`View evidence for claim ${claim.id}`}
           >
             Evidence

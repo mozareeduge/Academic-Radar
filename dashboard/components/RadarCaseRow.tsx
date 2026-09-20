@@ -1,77 +1,78 @@
+import Link from "next/link";
+import { AlertTriangle, ArrowRight, Clock3, RefreshCw } from "lucide-react";
 import type { RadarCase } from "@/types";
 
 interface RadarCaseRowProps {
   case: RadarCase;
+  compact?: boolean;
 }
 
-export function RadarCaseRow({ case: radarCase }: RadarCaseRowProps) {
+export function RadarCaseRow({ case: radarCase, compact = false }: RadarCaseRowProps) {
+  const blockerCount = radarCase.blockers.length;
+  const deadline = radarCase.deadline?.original_text ?? null;
+  const heading = `Case ${radarCase.id}`;
+
   return (
-    <div
+    <Link
+      href={`/cases/${encodeURIComponent(radarCase.id)}`}
       data-testid={`radar-case-${radarCase.id}`}
-      className="flex flex-col gap-3 border-b border-border py-4 px-4 last:border-0"
+      className="group block border-b border-border px-4 py-4 transition-colors last:border-0 hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+      aria-label={`Open ${heading}`}
     >
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex flex-col gap-1 flex-1 min-w-0">
-          <h2 className="font-semibold text-foreground line-clamp-2">
-            {radarCase.title}
-          </h2>
-          <p className="text-sm text-muted-foreground">{radarCase.route}</p>
+      <div className="flex min-w-0 items-start justify-between gap-4">
+        <div className="min-w-0 flex-1">
+          <h2 className="line-clamp-2 font-semibold text-foreground">{heading}</h2>
+          <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+            <span>{radarCase.research_state}</span>
+            <span className="truncate font-mono" title={radarCase.id}>{radarCase.id}</span>
+          </div>
         </div>
+        <ArrowRight className="mt-0.5 size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" aria-hidden />
       </div>
 
-      <div className="flex flex-wrap gap-2 items-center">
-        {radarCase.blocker && (
-          <span
-            data-testid="chip"
-            className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-md bg-destructive/10 text-destructive border border-destructive/20"
-          >
-            {radarCase.blocker}
-          </span>
-        )}
-
-        {radarCase.suggested_disposition && (
-          <div className="inline-flex items-center gap-1">
-            <span className="text-xs text-muted-foreground">
-              System suggests:
-            </span>
+      {!compact && (
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          {blockerCount > 0 && (
             <span
               data-testid="chip"
-              className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-md bg-blue/10 text-blue border border-blue/20"
+              className="inline-flex items-center gap-1 border border-destructive/30 bg-destructive/10 px-2.5 py-1 text-xs font-medium text-destructive"
             >
-              {radarCase.suggested_disposition}
+              <AlertTriangle className="size-3" aria-hidden />
+              {blockerCount} formal blocker{blockerCount === 1 ? "" : "s"}
             </span>
-          </div>
-        )}
+          )}
 
-        {radarCase.user_disposition && (
-          <div className="inline-flex items-center gap-1">
-            <span className="text-xs text-muted-foreground">
-              Your decision:
+          {radarCase.unknown_count > 0 && (
+            <span data-testid="chip" className="inline-flex items-center border border-border bg-muted px-2.5 py-1 text-xs font-medium">
+              {radarCase.unknown_count} unknown
             </span>
-            <span
-              data-testid="chip"
-              className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-md bg-green/10 text-green border border-green/20"
-            >
-              {radarCase.user_disposition}
-            </span>
-          </div>
-        )}
+          )}
 
-        {radarCase.deadline && (
-          <span
-            data-testid="chip"
-            className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-muted-foreground"
-          >
-            {radarCase.deadline}
+          {radarCase.suggested_disposition && (
+            <span data-testid="chip" className="inline-flex items-center gap-1 border border-border bg-muted px-2.5 py-1 text-xs">
+              <span className="text-muted-foreground">System suggests:</span>
+              <strong className="font-semibold text-foreground">{radarCase.suggested_disposition}</strong>
+            </span>
+          )}
+
+          <span data-testid="chip" className="inline-flex items-center gap-1 border border-border bg-background px-2.5 py-1 text-xs">
+            <span className="text-muted-foreground">Your decision:</span>
+            <strong className="font-semibold text-foreground">{radarCase.user_disposition}</strong>
           </span>
-        )}
 
-        {radarCase.freshness && (
-          <span className="text-xs text-muted-foreground">
-            {radarCase.freshness}
+          {deadline && (
+            <span data-testid="chip" className="inline-flex items-center gap-1 px-1 py-1 text-xs text-muted-foreground">
+              <Clock3 className="size-3" aria-hidden />
+              {deadline}
+            </span>
+          )}
+
+          <span className="inline-flex items-center gap-1 px-1 py-1 text-xs text-muted-foreground">
+            <RefreshCw className="size-3" aria-hidden />
+            {radarCase.freshness ? "Fresh" : "Stale"}
           </span>
-        )}
-      </div>
-    </div>
+        </div>
+      )}
+    </Link>
   );
 }

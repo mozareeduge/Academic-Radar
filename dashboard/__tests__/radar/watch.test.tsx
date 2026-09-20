@@ -1,17 +1,11 @@
-import { render, screen, within } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import WatchPage from "@/app/(app)/watch/page";
 import * as api from "@/lib/api";
 
-// Mock Next.js navigation
-jest.mock("next/navigation", () => ({
-  useRouter: () => ({}),
-  useParams: () => ({}),
-}));
-
-// Mock the API
 jest.mock("@/lib/api", () => ({
   fetchChangeEvents: jest.fn(),
+  fetchWatchTargets: jest.fn(),
   postResearch: jest.fn(),
   fetchMe: jest.fn(() => Promise.resolve({ user_id: 1, email: "test@example.com" })),
   fetchAuthConfig: jest.fn(() => Promise.resolve({ auth_mode: "password", invite_required: false })),
@@ -20,9 +14,11 @@ jest.mock("@/lib/api", () => ({
   apiStartupError: () => null,
   ApiError: class ApiError extends Error {
     status: number;
-    constructor(message: string, status: number) {
+    details?: unknown;
+    constructor(message: string, status: number, details?: unknown) {
       super(message);
       this.status = status;
+      this.details = details;
     }
   },
 }));
@@ -48,29 +44,42 @@ const mockChangeEvents = {
   ],
 };
 
+const mockWatchTargets = {
+  items: [
+    {
+      id: "watch-1",
+      target_id: "programme-123",
+      url: "https://example.edu/programme",
+      cadence: "DAILY",
+      state: "ACTIVE",
+    },
+  ],
+};
+
 describe("Watch Page", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     (api.fetchChangeEvents as jest.Mock).mockResolvedValue(mockChangeEvents);
+    (api.fetchWatchTargets as jest.Mock).mockResolvedValue(mockWatchTargets);
     (api.postResearch as jest.Mock).mockResolvedValue({ run_id: "run-123" });
   });
 
-  it("renders change events list with diff and impacted cases", async () => {
+  it("renders production watch targets and backend-reported change events", async () => {
     render(<WatchPage />);
 
-    await screen.findByText("Watch");
-
-    // First change event with material changes and impacted cases
-    // The summary appears in both the heading and as a diff line
-    const summaryElements = screen.getAllByText("Deadline changed from Feb 15 to Mar 1");
-    expect(summaryElements.length).toBeGreaterThanOrEqual(1);
-
-    // Should show impacted cases label
-    expect(screen.getByText("Impacted cases:")).toBeInTheDocument();
+    expect(await screen.findByText("Watch")).toBeInTheDocument();
+    expect(screen.getByText("programme-123")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /open source/i })).toHaveAttribute(
+      "href",
+      "https://example.edu/programme",
+    );
+    expect(screen.getByText("Deadline changed from Feb 15 to Mar 1")).toBeInTheDocument();
+    expect(screen.getByText("Material change")).toBeInTheDocument();
+    expect(screen.getByText("Non-material change")).toBeInTheDocument();
   });
 
-  it("shows only API-provided cases in impacted list, filtering dependent ones", async () => {
-    const eventsWithMixedCases = {
+  it("shows exactly the backend-provided impacted case IDs", async () => {
+    (api.fetchChangeEvents as jest.Mock).mockResolvedValue({
       items: [
         {
           id: "change-1",
@@ -81,114 +90,43 @@ describe("Watch Page", () => {
           impacted_cases: ["case-1", "case-2"],
         },
       ],
-      source_health: [],
-    };
-    (api.fetchChangeEvents as jest.Mock).mockResolvedValue(eventsWithMixedCases);
+    });
 
     render(<WatchPage />);
 
-    await screen.findByText("Watch");
-
-    // Verify only the API-provided impacted cases are shown
-    expect(screen.getByText("case-1")).toBeInTheDocument();
+    expect(await screen.findByText("case-1")).toBeInTheDocument();
     expect(screen.getByText("case-2")).toBeInTheDocument();
-
-    // Verify we don't show any extra cases
-    const caseRows = screen.getAllByText(/case-\d/);
-    expect(caseRows).toHaveLength(2);
+    expect(screen.getAllByRole("link", { name: /case-[12]/ })).toHaveLength(2);
   });
 
-  it("displays failed source health with FETCH_FAILED status", async () => {
-    const eventsWithFailed = {
-      items: [
-        {
-          id: "change-1",
-          watch_check_id: "check-1",
-          summary: "Source data updated",
-          material: true,
-          at: "2026-09-20T10:00:00Z",
-          impacted_cases: ["case-1"],
-        },
-      ],
-      source_health: [
-        {
-          source: "university-site",
-          status: "FETCH_FAILED",
-          last_check: "2026-09-20T09:50:00Z",
-        },
-        {
-          source: "academic-db",
-          status: "OK",
-          last_check: "2026-09-20T09:55:00Z",
-        },
-      ],
-    };
-    (api.fetchChangeEvents as jest.Mock).mockResolvedValue(eventsWithFailed);
-
+  it("does not fabricate a textual diff or source-health data absent from the production response", async () => {
     render(<WatchPage />);
 
-    await screen.findByText("Watch");
-
-    // Find Source Health table
-    const sourceHealthHeader = screen.getByText(/source health/i);
-    expect(sourceHealthHeader).toBeInTheDocument();
-
-    // Failed source should be visible
-    const healthTable = sourceHealthHeader.closest("div");
-    expect(within(healthTable!).getByText("university-site")).toBeInTheDocument();
-    expect(within(healthTable!).getByText("FETCH_FAILED")).toBeInTheDocument();
+    await screen.findByText("Deadline changed from Feb 15 to Mar 1");
+    expect(screen.queryByText(/source health/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/^\+/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/^-/)).not.toBeInTheDocument();
   });
 
-  it("never hides failed source in Source Health table", async () => {
-    const eventsWithMultipleFailed = {
-      items: [],
-      source_health: [
-        {
-          source: "failed-source-1",
-          status: "FETCH_FAILED",
-          last_check: "2026-09-20T09:50:00Z",
-        },
-        {
-          source: "failed-source-2",
-          status: "FETCH_FAILED",
-          last_check: "2026-09-20T08:30:00Z",
-        },
-      ],
-    };
-    (api.fetchChangeEvents as jest.Mock).mockResolvedValue(eventsWithMultipleFailed);
-
-    render(<WatchPage />);
-
-    await screen.findByText("Watch");
-
-    expect(screen.getByText("failed-source-1")).toBeInTheDocument();
-    expect(screen.getByText("failed-source-2")).toBeInTheDocument();
-  });
-
-  it("calls POST research endpoint once per Re-run button click", async () => {
+  it("queues research only for the impacted case whose button is clicked", async () => {
     const user = userEvent.setup();
     render(<WatchPage />);
 
-    await screen.findByText("Watch");
-
-    // Find and click the re-run button for first impacted case
-    const rerunButtons = screen.getAllByRole("button", { name: /re-run/i });
-    expect(rerunButtons.length).toBeGreaterThan(0);
-
+    const rerunButtons = await screen.findAllByRole("button", { name: /re-run affected research/i });
     await user.click(rerunButtons[0]);
 
-    // Verify POST research was called exactly once
     expect(api.postResearch).toHaveBeenCalledTimes(1);
-    expect(api.postResearch).toHaveBeenCalledWith(expect.any(String));
+    expect(api.postResearch).toHaveBeenCalledWith("case-1");
+    expect(await screen.findByText("Research queued · run-123")).toBeInTheDocument();
   });
 
-  it("shows re-run button for each impacted case", async () => {
+  it("keeps watch-target and change-event failures visible without discarding the other section", async () => {
+    (api.fetchWatchTargets as jest.Mock).mockRejectedValue(new Error("target failure"));
+
     render(<WatchPage />);
 
-    await screen.findByText("Watch");
-
-    // First event has 2 impacted cases, so should have 2 re-run buttons
-    const rerunButtons = screen.getAllByRole("button", { name: /re-run/i });
-    expect(rerunButtons.length).toBeGreaterThanOrEqual(2);
+    expect(await screen.findByRole("alert")).toHaveTextContent("Could not load watch targets");
+    expect(screen.getByText("Deadline changed from Feb 15 to Mar 1")).toBeInTheDocument();
+    expect(screen.getByText("No production watch targets are configured.")).toBeInTheDocument();
   });
 });

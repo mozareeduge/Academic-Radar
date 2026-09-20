@@ -756,14 +756,26 @@ export async function fetchKeyUsage(id: number, days = 30): Promise<ApiKeyUsage>
   return request<ApiKeyUsage>(`/api/v1/apikeys/${id}/usage?days=${days}`);
 }
 
-// --- Radar (P14) -----------------------------------------------------------------
-export function fetchRadarQueue(): Promise<Paginated<RadarCase>> {
-  return request<Paginated<RadarCase>>("/api/radar/queue");
+// --- Academic Radar -------------------------------------------------------------
+export function fetchRadarCases(filters: {
+  application_route?: import("@/types").ApplicationRoute;
+  research_state?: import("@/types").ResearchState;
+} = {}): Promise<Paginated<RadarCase>> {
+  const params = new URLSearchParams();
+  if (filters.application_route) params.set("application_route", filters.application_route);
+  if (filters.research_state) params.set("research_state", filters.research_state);
+  const qs = params.toString();
+  return request<Paginated<RadarCase>>(`/api/radar/cases${qs ? `?${qs}` : ""}`);
 }
 
-// --- Case Dossier (P15a) -------------------------------------------------------
+// Kept as the page-facing name so existing imports remain stable. The
+// production contract has no /queue endpoint; the radar queue is GET /cases.
+export function fetchRadarQueue(): Promise<Paginated<RadarCase>> {
+  return fetchRadarCases();
+}
+
 export function fetchCase(caseId: string): Promise<CaseDossier> {
-  return request<CaseDossier>(`/api/radar/cases/${caseId}`);
+  return request<CaseDossier>(`/api/radar/cases/${encodeURIComponent(caseId)}`);
 }
 
 interface DispositionRequest {
@@ -771,28 +783,70 @@ interface DispositionRequest {
   reason?: string;
 }
 
-export function setUserDisposition(caseId: string, disposition: string, reason?: string): Promise<CaseDossier> {
+export function setUserDisposition(caseId: string, disposition: import("@/types").UserDisposition, reason?: string): Promise<CaseDossier> {
   const body: DispositionRequest = { value: disposition };
   if (reason) body.reason = reason;
   return request<CaseDossier>(
-    `/api/radar/cases/${caseId}/disposition`,
+    `/api/radar/cases/${encodeURIComponent(caseId)}/disposition`,
     { method: "POST", body: JSON.stringify(body) }
   );
 }
 
-// --- Watch / Changes (P18) ---------------------------------------------------
+export function setApplicationStage(caseId: string, stage: import("@/types").ApplicationStage): Promise<CaseDossier> {
+  return request<CaseDossier>(
+    `/api/radar/cases/${encodeURIComponent(caseId)}/stage`,
+    { method: "POST", body: JSON.stringify({ stage }) },
+  );
+}
+
+export function addCaseNote(caseId: string, body: string): Promise<{ status: string }> {
+  return request<{ status: string }>(
+    `/api/radar/cases/${encodeURIComponent(caseId)}/notes`,
+    { method: "POST", body: JSON.stringify({ body }) },
+  );
+}
+
+export function fetchCoverage(caseId: string): Promise<import("@/types").CoverageResponse> {
+  return request<import("@/types").CoverageResponse>(
+    `/api/radar/cases/${encodeURIComponent(caseId)}/coverage`,
+  );
+}
+
+export function fetchClaimEvidence(claimId: string): Promise<import("@/types").EvidenceResponse> {
+  return request<import("@/types").EvidenceResponse>(
+    `/api/radar/claims/${encodeURIComponent(claimId)}/evidence`,
+  );
+}
+
+export function fetchFunding(caseId: string): Promise<Paginated<import("@/types").FundingAssessment>> {
+  return request<Paginated<import("@/types").FundingAssessment>>(
+    `/api/radar/funding/${encodeURIComponent(caseId)}`,
+  );
+}
+
+export function fetchWatchTargets(): Promise<Paginated<import("@/types").WatchTarget>> {
+  return request<Paginated<import("@/types").WatchTarget>>("/api/radar/watch/targets");
+}
+
 export function fetchChangeEvents(): Promise<ChangeEventsResponse> {
   return request<ChangeEventsResponse>("/api/radar/watch/changes");
 }
 
 export function postResearch(caseId: string): Promise<{ run_id: string }> {
   return request<{ run_id: string }>(
-    `/api/radar/cases/${caseId}/research`,
+    `/api/radar/cases/${encodeURIComponent(caseId)}/research`,
     { method: "POST", body: JSON.stringify({}) }
   );
 }
 
-// --- Application Brief (P19b) ------------------------------------------------
+export function fetchRadarRoutes(): Promise<Paginated<import("@/types").RadarRoute>> {
+  return request<Paginated<import("@/types").RadarRoute>>("/api/radar/routes");
+}
+
+export function fetchRadarProfile(): Promise<import("@/types").RadarProfile> {
+  return request<import("@/types").RadarProfile>("/api/radar/profile");
+}
+
 export function freezeBrief(caseId: string): Promise<{
   id: string;
   case_id: string;
@@ -805,11 +859,11 @@ export function freezeBrief(caseId: string): Promise<{
     frozen_at: string;
     state: string;
   }>(
-    `/api/radar/cases/${caseId}/brief`,
+    `/api/radar/cases/${encodeURIComponent(caseId)}/brief`,
     { method: "POST", body: JSON.stringify({}) }
   );
 }
 
 export function fetchBrief(briefId: string): Promise<Brief> {
-  return request<Brief>(`/api/radar/briefs/${briefId}`);
+  return request<Brief>(`/api/radar/briefs/${encodeURIComponent(briefId)}`);
 }

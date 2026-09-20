@@ -1,150 +1,131 @@
-/**
- * Tests for Brief UI (P19b)
- *
- * SCN-036: Generate Application Brief — freeze button, rendered brief with evidence
- * SCN-037: Case changes after brief → Superseded banner
- * No 'send' or 'email' button anywhere
- */
-
-import React from "react";
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { BriefTab } from "@/components/radar/BriefTab";
+import * as api from "@/lib/api";
 import type { CaseDossier } from "@/types";
 
+jest.mock("@/lib/api", () => ({
+  freezeBrief: jest.fn(),
+  fetchBrief: jest.fn(),
+  fetchClaimEvidence: jest.fn(),
+  ApiError: class ApiError extends Error {
+    status: number;
+    details?: Record<string, unknown>;
+    constructor(message: string, status: number, details?: Record<string, unknown>) {
+      super(message);
+      this.status = status;
+      this.details = details;
+    }
+  },
+}));
+
+const cleanCase: CaseDossier = {
+  id: "case-1",
+  research_state: "EVIDENCE_READY",
+  user_disposition: "UNDECIDED",
+  suggested_disposition: "STRONG",
+  blockers: [],
+  unknown_count: 0,
+  deadline: null,
+  freshness: true,
+};
+
+const brief = {
+  id: "brief-1",
+  case_id: "case-1",
+  frozen_at: "2026-09-20T10:00:00Z",
+  state: "FROZEN",
+  superseded: false,
+  content: {
+    claims: [
+      { id: "claim-1", statement: "Supervisor has relevant publications", claim_type: "EXTERNAL_FACT", status: "SUPPORTED", evidence_ids: ["art-1"] },
+    ],
+    gates: [{ id: "gate-1", requirement: "English requirement", result: "PASS", evidence_ids: ["art-1"] }],
+    dimensions: [{ id: "dim-1", dimension_id: "ADMISSION_VIABILITY", value: 2 }],
+    funding_assessments: [{ id: "fund-1", funding_route_id: "route-1", award_amount: "15000", currency: "EUR" }],
+  },
+};
+
 describe("BriefTab", () => {
-  const mockCaseData: CaseDossier = {
-    id: "case-1",
-    research_state: "EVIDENCE_READY",
-    user_disposition: "UNDECIDED",
-    suggested_disposition: "STRONG",
-    blockers: [],
-    unknown_count: 0,
-    deadline: null,
-    freshness: true,
-    gates: [],
-    dimensions: [],
-  };
-
-  // mockBrief used in potential future tests for loading external briefs
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const mockBrief = {
-    id: "brief-1",
-    case_id: "case-1",
-    frozen_at: new Date().toISOString(),
-    state: "DRAFT",
-    superseded: false,
-    content: {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (api.freezeBrief as jest.Mock).mockResolvedValue({
+      id: "brief-1",
       case_id: "case-1",
-      frozen_at: new Date().toISOString(),
-      claims: [
-        {
-          id: "claim-1",
-          statement: "Supervisor has relevant publications",
-          claim_type: "EXTERNAL_FACT",
-          status: "SUPPORTED",
-          evidence_ids: [
-            {
-              id: "art-1",
-              source_url: "https://example.com",
-              retrieved_at: new Date().toISOString(),
-            },
-          ],
-          created_at: new Date().toISOString(),
-        },
-      ],
-      gates: [
-        {
-          id: "gate-1",
-          requirement: "English language requirement",
-          result: "PASS",
-          evidence_ids: ["art-1"],
-          effective_date: new Date().toISOString(),
-        },
-      ],
-      dimensions: [],
-      funding_assessments: [],
-    },
-  };
+      frozen_at: "2026-09-20T10:00:00Z",
+      state: "FROZEN",
+    });
+    (api.fetchBrief as jest.Mock).mockResolvedValue(brief);
+  });
 
-  it("renders the brief tab section", () => {
-    render(<BriefTab caseId="case-1" caseData={mockCaseData} />);
+  it("renders application brief controls without send/email actions", () => {
+    render(<BriefTab caseId="case-1" caseData={cleanCase} />);
     expect(screen.getByText("Application Brief")).toBeInTheDocument();
-  });
-
-  it("shows freeze button when no brief exists", () => {
-    render(<BriefTab caseId="case-1" caseData={mockCaseData} />);
-    expect(screen.getByText("Prepare evidence brief")).toBeInTheDocument();
-  });
-
-  it("disables freeze button when blockers exist", () => {
-    const caseWithBlockers: CaseDossier = {
-      ...mockCaseData,
-      blockers: [{ name: "English requirement", status: "FAIL" }],
-    };
-    render(<BriefTab caseId="case-1" caseData={caseWithBlockers} />);
-    const button = screen.getByText("Prepare evidence brief");
-    expect(button).toBeDisabled();
-  });
-
-  it("disables freeze button when facts are not fresh", () => {
-    const caseNotFresh: CaseDossier = {
-      ...mockCaseData,
-      freshness: false,
-    };
-    render(<BriefTab caseId="case-1" caseData={caseNotFresh} />);
-    const button = screen.getByText("Prepare evidence brief");
-    expect(button).toBeDisabled();
-  });
-
-  it("disables freeze button when unknowns exist", () => {
-    const caseWithUnknowns: CaseDossier = {
-      ...mockCaseData,
-      unknown_count: 5,
-    };
-    render(<BriefTab caseId="case-1" caseData={caseWithUnknowns} />);
-    const button = screen.getByText("Prepare evidence brief");
-    expect(button).toBeDisabled();
-  });
-
-  it("does not contain send or email button", () => {
-    render(<BriefTab caseId="case-1" caseData={mockCaseData} />);
+    expect(screen.getByRole("button", { name: "Prepare evidence brief" })).toBeEnabled();
     expect(screen.queryByText(/send/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/email/i)).not.toBeInTheDocument();
   });
 
-  it("shows superseded banner when brief is superseded", () => {
-    const caseAfterBrief: CaseDossier = {
-      ...mockCaseData,
-      unknown_count: 0,
-    };
-
-    render(<BriefTab caseId="case-1" caseData={caseAfterBrief} />);
-
-    expect(screen.queryByText("Superseded")).not.toBeInTheDocument();
+  // Tier-A oracle restored (drop-in revision had inverted it): freeze guards on
+  // backend-provided CaseOut fields — blockers, unknowns, staleness.
+  it("disables freeze button when formal blockers exist", () => {
+    render(
+      <BriefTab
+        caseId="case-1"
+        caseData={{ ...cleanCase, blockers: [{ name: "Formal gate", status: "FAIL" }] }}
+      />,
+    );
+    expect(screen.getByRole("button", { name: "Prepare evidence brief" })).toBeDisabled();
+    expect(screen.getByTestId("brief-disabled-reason")).toHaveTextContent("Formal blockers must be resolved");
   });
 
-  it("displays claim evidence in brief content", () => {
-    const element = render(<BriefTab caseId="case-1" caseData={mockCaseData} />);
-    expect(element).toBeTruthy();
+  it("disables freeze button when unknown facts exist", () => {
+    render(<BriefTab caseId="case-1" caseData={{ ...cleanCase, unknown_count: 3 }} />);
+    expect(screen.getByRole("button", { name: "Prepare evidence brief" })).toBeDisabled();
+    expect(screen.getByTestId("brief-disabled-reason")).toHaveTextContent("Unknown facts must be resolved");
   });
 
-  it("shows evidence count for each claim", () => {
-    const element = render(<BriefTab caseId="case-1" caseData={mockCaseData} />);
-    expect(element).toBeTruthy();
+  it("disables freeze button when facts are not fresh", () => {
+    render(<BriefTab caseId="case-1" caseData={{ ...cleanCase, freshness: false }} />);
+    expect(screen.getByRole("button", { name: "Prepare evidence brief" })).toBeDisabled();
+    expect(screen.getByTestId("brief-disabled-reason")).toHaveTextContent("Critical facts need rechecking");
   });
 
-  it("displays freshness information", () => {
-    const element = render(<BriefTab caseId="case-1" caseData={mockCaseData} />);
-    expect(element).toBeTruthy();
+  it("enables freeze only for a clean case", () => {
+    render(<BriefTab caseId="case-1" caseData={cleanCase} />);
+    expect(screen.getByRole("button", { name: "Prepare evidence brief" })).toBeEnabled();
+    expect(screen.queryByTestId("brief-disabled-reason")).not.toBeInTheDocument();
   });
 
-  it("shows formal gates section when gates exist", () => {
-    const element = render(<BriefTab caseId="case-1" caseData={mockCaseData} />);
-    expect(element).toBeTruthy();
+  it("fetches and renders the frozen brief after a successful freeze", async () => {
+    render(<BriefTab caseId="case-1" caseData={cleanCase} />);
+    await userEvent.click(screen.getByRole("button", { name: "Prepare evidence brief" }));
+
+    expect(api.freezeBrief).toHaveBeenCalledWith("case-1");
+    expect(api.fetchBrief).toHaveBeenCalledWith("brief-1");
+    expect(await screen.findByText("Supervisor has relevant publications")).toBeInTheDocument();
+    expect(screen.getByText("English requirement")).toBeInTheDocument();
+    expect(screen.getByText("ADMISSION_VIABILITY")).toBeInTheDocument();
+    expect(screen.getByText("route-1")).toBeInTheDocument();
   });
 
-  it("shows funding section when funding assessments exist", () => {
-    const element = render(<BriefTab caseId="case-1" caseData={mockCaseData} />);
-    expect(element).toBeTruthy();
+  it("surfaces backend 409 blocking reasons", async () => {
+    (api.freezeBrief as jest.Mock).mockRejectedValue(
+      new api.ApiError("Brief cannot be frozen from the current evidence state", 409, {
+        headers: { "x-brief-blocked-reasons": "Unknown facts must be resolved; Facts are stale" },
+      }),
+    );
+    render(<BriefTab caseId="case-1" caseData={cleanCase} />);
+    await userEvent.click(screen.getByRole("button", { name: "Prepare evidence brief" }));
+
+    expect(await screen.findByText("Unknown facts must be resolved")).toBeInTheDocument();
+    expect(screen.getByText("Facts are stale")).toBeInTheDocument();
+  });
+
+  it("shows superseded state returned by the backend", async () => {
+    (api.fetchBrief as jest.Mock).mockResolvedValue({ ...brief, superseded: true });
+    render(<BriefTab caseId="case-1" caseData={cleanCase} />);
+    await userEvent.click(screen.getByRole("button", { name: "Prepare evidence brief" }));
+    expect(await screen.findByText("Superseded")).toBeInTheDocument();
   });
 });

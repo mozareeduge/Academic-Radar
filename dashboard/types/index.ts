@@ -489,14 +489,14 @@ export interface ApiKeyUsage {
 // --- Radar (P14) -----------------------------------------------------------------
 export interface RadarCase {
   id: string;
-  title: string;
-  route: string;
   research_state: string;
   suggested_disposition?: string | null;
   user_disposition?: string | null;
-  blocker?: string | null;
-  deadline?: string | null;
-  freshness?: string | null;
+  application_route?: string | null;
+  blockers: Array<{ name: string; status: string; reason?: string | null }>;
+  unknown_count: number;
+  deadline?: { original_text: string | null; precision?: string | null } | null;
+  freshness?: boolean | null;
 }
 
 // --- Case Dossier (P15a) -------------------------------------------------------
@@ -533,16 +533,20 @@ export interface CaseDossier {
   unknown_count: number;
   deadline: CaseDeadline | null;
   freshness: boolean;
-  gates: GateAssessment[];
-  dimensions: DimensionAssessment[];
+  // Backend GET /api/radar/cases/{id} (CaseOut) does not serve these today;
+  // optional until a dossier endpoint exists.
+  gates?: GateAssessment[];
+  dimensions?: DimensionAssessment[];
 }
 
 // --- Evidence Inspector (P15b) ------------------------------------------------
-export type CoverageStatus = "searched+found" | "searched+none" | "not searched" | "blocked";
+// Values mirror CoverageStatus enum (astra/academic_radar/domain/enums.py) verbatim.
+export type CoverageStatus = "SEARCHED_FOUND" | "SEARCHED_NONE_FOUND" | "NOT_SEARCHED" | "BLOCKED";
 
 export interface CoverageItem {
-  class: string;
+  evidence_class: string;
   status: CoverageStatus;
+  evidence_ids: string[];
 }
 
 export interface Claim {
@@ -556,15 +560,22 @@ export interface Claim {
 }
 
 // --- MA + Funding (P17) -------------------------------------------------------
+// Matches backend FundingAssessmentOut (astra/api/routes/radar_misc.py) verbatim;
+// Decimals arrive as strings.
 export interface FundingAssessment {
   id: string;
-  funding_route_name: string;
+  case_id: string;
+  funding_route_id: string;
   currency: string;
-  award: string;
-  tuition: string;
-  known_gap: string;
-  unknown_cost_items: string[];
-  fully_funded_allowed: boolean;
+  award_amount: string | null;
+  tuition_amount: string | null;
+  duration_months?: number | null;
+  known_costs?: Record<string, string> | null;
+  unknown_costs?: Record<string, string> | null;
+  uncovered_gap: string | null;
+  state: string;
+  created_at: string;
+  updated_at: string;
 }
 
 // --- Watch / Changes (P18) ---------------------------------------------------
@@ -603,7 +614,8 @@ export interface Brief {
   id: string;
   case_id: string;
   frozen_at: string | null;
-  state: "DRAFT" | "REVIEWED" | "SUPERSEDED";
+  // Backend BriefOut.state is a plain str (BriefState enum is enforced server-side).
+  state: string;
   superseded: boolean;
   content: {
     case_id: string;
@@ -643,4 +655,98 @@ export interface Brief {
       currency: string;
     }>;
   } | null;
+}
+
+// --- Radar UI additions (drop-in v1 reintegration, 2026-09-20) -----------------
+// Verbatim unions mirror astra/academic_radar/domain/enums.py. Additive only:
+// existing types above are untouched.
+
+export type ApplicationRoute =
+  | "SUPERVISOR_FIRST_PHD"
+  | "ADVERTISED_PHD"
+  | "STRUCTURED_PHD"
+  | "MA_PROGRAMME";
+
+export type ResearchState =
+  | "DISCOVERED"
+  | "TRIAGED"
+  | "RESEARCHING"
+  | "EVIDENCE_READY"
+  | "STALE"
+  | "FAILED"
+  | "ARCHIVED";
+
+export type UserDisposition =
+  | "UNDECIDED"
+  | "STRONG"
+  | "WATCH"
+  | "ACT"
+  | "REJECTED";
+
+export interface WatchTarget {
+  id: string;
+  target_id: string;
+  url: string;
+  cadence: string;
+  state: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface EvidenceArtifact {
+  id: string;
+  source_url: string;
+  authority: string;
+  retrieved_at: string;
+  excerpt?: string | null;
+}
+
+export interface EvidenceResponse {
+  artifacts: EvidenceArtifact[];
+  independent_support_count: number;
+  contradiction_state: string;
+}
+
+export interface CoverageResponse {
+  coverage: CoverageItem[];
+  protocol_version: string;
+}
+
+export type ApplicationStage =
+  | "NOT_STARTED"
+  | "PREPARING"
+  | "CONTACTED"
+  | "APPLICATION_OPEN"
+  | "APPLIED"
+  | "INTERVIEW"
+  | "OFFER"
+  | "DECLINED"
+  | "CLOSED";
+
+// Matches backend RouteOut (astra/api/routes/radar_misc.py).
+export interface RadarRoute {
+  id: string;
+  name: string;
+  state: string;
+  route_statement?: string | null;
+  core_problem?: string | null;
+  maturity?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+// Matches backend ProfileOut (astra/api/routes/radar_misc.py).
+export interface RadarProfile {
+  id: string;
+  state: string;
+  fixed_constraints?: string | null;
+  education?: Record<string, unknown> | null;
+  language_evidence?: Record<string, unknown> | null;
+  scholarly_work?: Record<string, unknown> | null;
+  artistic_curatorial_work?: Record<string, unknown> | null;
+  professional_technical_evidence?: Record<string, unknown> | null;
+  verification_status?: string | null;
+  documents?: Record<string, unknown> | null;
+  created_at: string;
+  updated_at: string;
 }
