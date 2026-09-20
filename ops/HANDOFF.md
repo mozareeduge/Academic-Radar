@@ -1,5 +1,7 @@
 # HANDOFF — Academic Radar (state at commit 0c30eee, 2026-09-20)
 
+> **UPDATE 2026-09-20 ~15:10 (Hermes session):** CI verdict for 0c30eee = SUCCESS (all 4 jobs). Item 4 (live checks) done for both scholarly APIs: OpenAlex OK as-written; OpenAIRE Graph v3 was BROKEN live (guessed params 400/405) and FIXED+verified in commit `7359179` — see that commit message for the full contract (search/authorId/fundingShortName/research-products/results). Remaining open: P03b (private folder — maintainer only), stronger-model review of Haiku tests (item 3), real LLM provider check (item 4, provider not configured on this machine), browser layout pass (item 5).
+
 The Haiku runner is STOPPED and nothing is scheduled to restart it. Whoever continues owns the working tree.
 
 ## Landed (all on origin/main, repo is PRIVATE)
