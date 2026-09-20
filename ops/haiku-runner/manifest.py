@@ -371,3 +371,16 @@ SLICES.append(S("P21b", "Oracle traceability: tag or write tests for every uncov
      "Finally recompute ops/evidence/qa_report.md: rebuild the ORACLE -> test files table by grep and rewrite the UNCOVERED and Summary sections to match the truth."],
     ["astra/tests/academic_radar/**", "ops/evidence/**"],
     ['"{PY}" ops/haiku-runner/checks/check_oracle_tags.py', be_fast()], max_turns=140))
+
+
+SLICES.append(S("P22b", "Make the end-to-end smoke pass locally (case creation + restart durability)", ["P22"],
+    ["scripts/rc_smoke.py", "scripts/local_smoke.py (read only, never edit)", "astra/api/routes/radar_cases.py", "astra/api/routes/radar_dev.py", EXE + " (GATE-RC-SMOKE list in section R)"],
+    ["Run the gate command once to see the current failure. It starts the API locally in fixture mode, runs scripts/rc_smoke.py, restarts the API on the same database file, then runs scripts/rc_smoke.py --verify-durable.",
+     "Add a REAL endpoint POST /api/radar/cases to astra/api/routes/radar_cases.py: JSON body {route_id, target_id, application_route}; application_route is validated against the ApplicationRoute enum; it creates an EvaluationCase with research_state DISCOVERED, user_disposition UNDECIDED, application_stage NOT_STARTED; returns HTTP 201 with the same JSON shape as GET /api/radar/cases/{id}; returns 409 for a duplicate (route_id, target_id, application_route); 422 for an invalid application_route; uses the same auth dependency as the other routes in that file.",
+     "Append tests for it to astra/tests/academic_radar/test_api_cases.py (append only, do not change existing tests): 201 create, 409 duplicate, 422 invalid route, same route+target with a different application_route is allowed.",
+     "In scripts/rc_smoke.py: make wait_for_health retry on ConnectionError/OSError (including connection reset) until its own timeout, and accept 201 where a case is created.",
+     "Then repeat: run the gate, read the FIRST failing smoke step, fix the code under test in astra/api or astra/academic_radar (smallest change), run the gate again, until it prints LOCAL SMOKE OK.",
+     "FORBIDDEN: editing scripts/local_smoke.py; making rc_smoke.py skip, soften or catch-and-ignore any step; returning canned success from an endpoint. If a step needs Redis/RQ that is not available locally, make the RADAR_FIXTURE_MODE=1 dev endpoint run that work inline with the mock provider (only when RADAR_FIXTURE_MODE=1) - never fake a result.",
+     "Finally update docs/RADAR_RUNBOOK.md with the exact local command: python scripts/local_smoke.py."],
+    ["astra/api/**", "astra/academic_radar/**", "astra/tests/academic_radar/**", "scripts/rc_smoke.py", "docs/RADAR_RUNBOOK.md"],
+    ['"{PY}" scripts/local_smoke.py', be_fast()], ci=True, max_turns=140))
