@@ -22,6 +22,7 @@ services:
     environment:
       ASTRA_SECRET_KEY: ${ASTRA_SECRET_KEY:?ASTRA_SECRET_KEY must be set in production}
       RADAR_OWNER_EMAIL: ${RADAR_OWNER_EMAIL:?RADAR_OWNER_EMAIL must name the single Radar owner}
+      RADAR_FIXTURE_MODE: "0"
       CORS_ORIGINS: ${CORS_ORIGINS:?CORS_ORIGINS must list the production dashboard origin}
       API_WORKERS: ${API_WORKERS:-1}
       ASTRA_SCHEDULER_ENABLED: ${ASTRA_SCHEDULER_ENABLED:-1}
