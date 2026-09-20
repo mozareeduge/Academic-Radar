@@ -300,15 +300,17 @@
     "P22c": {
       "status": "done",
       "attempts": 2,
-      "feedback": ""
+      "feedback": "",
+      "sha": "fbae9723a2e17c88be523f9476520e779b16c3c9"
     },
     "P22d": {
-      "status": "pending",
-      "attempts": 0
+      "status": "done",
+      "attempts": 1,
+      "feedback": ""
     }
   },
   "ci_red": [],
   "started": "2026-09-19 17:20:20.487085",
-  "in_progress": "P22c",
+  "in_progress": "P22d",
   "ci_pending": null
 }

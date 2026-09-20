@@ -466,7 +466,10 @@ class FundingCreateRequest(BaseModel):
     funding_route_id: str
     currency: str
     award_amount: Optional[str] = None
+    tuition: Optional[str] = None
     tuition_amount: Optional[str] = None
+    living_costs: Optional[str] = None
+    mandatory_fees: Optional[str] = None
     duration_months: Optional[int] = None
     known_costs: Optional[dict] = None
     unknown_costs: Optional[dict] = None
@@ -482,6 +485,7 @@ class FundingResponse(BaseModel):
     currency: str
     award_amount: Optional[str] = None
     state: str
+    source_url: Optional[str] = None
 
 
 class WatchTargetCreateRequest(BaseModel):
@@ -535,31 +539,159 @@ class BriefCreateResponse(BaseModel):
     case_id: str
 
 
-@router.post("/briefs", response_model=BriefCreateResponse, status_code=201)
-def create_brief_fixture(
-    req: BriefCreateRequest,
+class GateCreateRequest(BaseModel):
+    """Request to create a gate assessment."""
+    requirement: str
+    result: str
+    evidence_ids: Optional[list[str]] = None
+
+
+class GateCreateResponse(BaseModel):
+    """Gate assessment response."""
+    id: str
+    case_id: str
+    requirement: str
+    result: str
+
+
+@router.post("/gate/{case_id}", response_model=GateCreateResponse, status_code=201)
+def create_gate_fixture(
+    case_id: str,
+    req: GateCreateRequest,
     session: Session = Depends(get_db),
-) -> BriefCreateResponse:
-    """Create an application brief in fixture mode.
+) -> GateCreateResponse:
+    """Create a gate assessment in fixture mode.
 
     Requires RADAR_FIXTURE_MODE=1.
     """
     _fixture_mode_only()
 
-    case = session.query(EvaluationCase).filter(EvaluationCase.id == req.case_id).first()
+    from db.radar_models_claims import GateAssessment
+
+    case = session.query(EvaluationCase).filter(EvaluationCase.id == case_id).first()
     if not case:
         raise HTTPException(status_code=404, detail=f"Case {case_id} not found")
 
-    brief = ApplicationBrief(
-        case_id=req.case_id,
-        state="DRAFT",
+    gate = GateAssessment(
+        case_id=case_id,
+        requirement=req.requirement,
+        source_authority="OFFICIAL_REGULATION",
+        result=req.result,
+        evidence_ids=req.evidence_ids or [],
     )
-    session.add(brief)
+    session.add(gate)
+    session.commit()
+
+    return GateCreateResponse(
+        id=gate.id,
+        case_id=gate.case_id,
+        requirement=gate.requirement,
+        result=gate.result,
+    )
+
+
+class WatchRunRequest(BaseModel):
+    """Request to run a watch check and trigger invalidation."""
+    case_id: str
+    source_url: str
+    prior_text: str
+    changed_text: str
+
+
+class WatchRunResponse(BaseModel):
+    """Response from watch run."""
+    change_event_id: Optional[str] = None
+
+
+@router.post("/watch-run", response_model=WatchRunResponse, status_code=200)
+def run_watch_and_invalidate_fixture(
+    req: WatchRunRequest,
+    session: Session = Depends(get_db),
+) -> WatchRunResponse:
+    """Run a real watch check, record change event, and invalidate dependent objects.
+
+    Implements the real flow: fetch -> snapshot -> change event -> invalidate.
+    Requires RADAR_FIXTURE_MODE=1.
+    """
+    _fixture_mode_only()
+
+    from academic_radar.watch.checks import run_watch_check
+    from academic_radar.domain.invalidation import invalidate
+
+    from db.radar_models_evidence import SourceSnapshot
+
+    case = session.query(EvaluationCase).filter(EvaluationCase.id == req.case_id).first()
+    if not case:
+        raise HTTPException(status_code=404, detail=f"Case {req.case_id} not found")
+
+    # Create initial snapshot with prior text (if not already present)
+    from academic_radar.evidence.snapshots import record_snapshot as rec_snap
+    initial_snap = session.query(SourceSnapshot).filter_by(source_url=req.source_url).first()
+    if not initial_snap:
+        initial_snap = rec_snap(session, req.source_url, req.prior_text, True)
+        session.flush()
+
+    # Create/find watch target for this URL
+    watch = session.query(WatchTarget).filter(WatchTarget.url == req.source_url).first()
+    if not watch:
+        watch = WatchTarget(
+            target_id=case.target_id,
+            url=req.source_url,
+            cadence="daily",
+        )
+        session.add(watch)
+        session.flush()
+
+    # Mock fetch function that returns the changed text
+    def mock_fetch(url: str):
+        if url == req.source_url:
+            return (req.changed_text, True)
+        return (None, False)
+
+    # Run watch check with prior text
+    result = run_watch_check(
+        session, {"id": watch.id, "url": watch.url}, mock_fetch,
+        prior_text=req.prior_text
+    )
+
+    # If snapshot changed, invalidate dependent objects
+    # Invalidate the INITIAL snapshot (which has the dependency link), not the new one
+    if result["snapshot_state"] == "CHANGED":
+        invalidate(session, initial_snap.id)
+
+    session.commit()
+
+    change_event_id = result.get("change_event_id") or result.get("snapshot_id")
+    return WatchRunResponse(change_event_id=change_event_id)
+
+
+@router.post("/briefs", response_model=BriefCreateResponse, status_code=201)
+def create_brief_fixture(
+    req: BriefCreateRequest,
+    session: Session = Depends(get_db),
+) -> BriefCreateResponse:
+    """Create an application brief in fixture mode using real freeze_brief logic.
+
+    Requires RADAR_FIXTURE_MODE=1.
+    """
+    _fixture_mode_only()
+
+    from academic_radar.domain.briefs import freeze_brief, BriefBlocked
+
+    case = session.query(EvaluationCase).filter(EvaluationCase.id == req.case_id).first()
+    if not case:
+        raise HTTPException(status_code=404, detail=f"Case {req.case_id} not found")
+
+    try:
+        brief_id = freeze_brief(session, req.case_id)
+    except BriefBlocked as e:
+        raise HTTPException(status_code=422, detail=f"Brief blocked: {'; '.join(e.reasons)}")
+
     session.commit()
 
     return BriefCreateResponse(
-        id=brief.id,
-        case_id=brief.case_id,
+        id=brief_id,
+        case_id=req.case_id,
     )
 
 
@@ -569,15 +701,22 @@ def create_funding_fixture(
     req: FundingCreateRequest,
     session: Session = Depends(get_db),
 ) -> FundingResponse:
-    """Create a funding assessment in fixture mode.
+    """Create a funding assessment in fixture mode using real compute_gap logic.
 
-    Creates a FundingRoute target entity if needed.
+    Creates a FundingRoute target entity and evidence artifacts as needed.
+    Persists via real code path using domain.funding.compute_gap.
     Requires RADAR_FIXTURE_MODE=1.
     """
     _fixture_mode_only()
 
     from decimal import Decimal
-    from db.radar_models_claims import FundingAssessment
+    from uuid import uuid4
+    from academic_radar.domain.funding import compute_gap, FundingInputs, fully_funded_label_allowed
+    from academic_radar.domain.invalidation import add_dependency
+    from academic_radar.evidence.snapshots import record_snapshot
+    from academic_radar.evidence.artifacts import create_artifact
+    from db.radar_models_claims import FundingAssessment, Claim, ClaimEvidence
+    from db.radar_models_evidence import EvidenceArtifact
 
     case = session.query(EvaluationCase).filter(EvaluationCase.id == case_id).first()
     if not case:
@@ -599,20 +738,77 @@ def create_funding_fixture(
         session.flush()
 
     award_amount = Decimal(req.award_amount) if req.award_amount else None
+    tuition = Decimal(req.tuition) if req.tuition else (Decimal(req.known_costs.get("tuition")) if req.known_costs and "tuition" in req.known_costs else None)
+    living_costs = Decimal(req.living_costs) if req.living_costs else (Decimal(req.known_costs.get("living_costs")) if req.known_costs and "living_costs" in req.known_costs else None)
+    mandatory_fees = Decimal(req.mandatory_fees) if req.mandatory_fees else (Decimal(req.known_costs.get("mandatory_fees")) if req.known_costs and "mandatory_fees" in req.known_costs else None)
 
+    # Create funding evidence snapshot and artifact
+    funding_url = f"https://fixtures.example.org/funding/{case_id}/{req.funding_route_id}"
+    snapshot = record_snapshot(session, funding_url, f"Funding data for {req.funding_route_id}", True)
+    now = datetime.now(timezone.utc)
+    artifact = create_artifact(
+        session, snapshot, funding_url, "text/plain",
+        f"Fixture funding for {req.funding_route_id}",
+        now.isoformat() if isinstance(now, datetime) else now
+    )
+    session.flush()
+
+    # Compute gap using real logic
+    unknown_items = []
+    if req.unknown_costs:
+        unknown_items = list(req.unknown_costs.keys())
+
+    inputs = FundingInputs(
+        currency=req.currency,
+        annual_award=award_amount,
+        fee_waiver=Decimal("0"),
+        reliable_external=Decimal("0"),
+        tuition=tuition,
+        mandatory_fees=mandatory_fees,
+        living_costs=living_costs,
+        insurance_visa_relocation=Decimal("0"),
+        duration_months=req.duration_months or 12,
+        unknown_cost_items=unknown_items,
+    )
+    result = compute_gap(inputs)
+
+    # Determine if "fully funded" label is allowed
+    is_fully_funded = fully_funded_label_allowed(result)
+
+    # Create funding assessment with computed gap
     assessment = FundingAssessment(
         case_id=case_id,
         funding_route_id=req.funding_route_id,
         currency=req.currency,
         award_amount=award_amount,
-        tuition_amount=Decimal(req.tuition_amount) if req.tuition_amount else None,
+        tuition_amount=tuition,
         duration_months=req.duration_months,
-        known_costs=req.known_costs,
-        unknown_costs=req.unknown_costs,
-        uncovered_gap=Decimal(req.uncovered_gap) if req.uncovered_gap else None,
+        known_costs=req.known_costs or {},
+        unknown_costs=req.unknown_costs or {},
+        uncovered_gap=result.annual_gap_or_surplus,
         state=req.state,
     )
     session.add(assessment)
+    session.flush()
+
+    # Create backing claim and link evidence
+    claim = Claim(
+        case_id=case_id,
+        statement=f"Funding assessment for {req.funding_route_id}",
+        claim_type="EXTERNAL_FACT",
+        status="SUPPORTED" if result.complete else "UNKNOWN",
+    )
+    session.add(claim)
+    session.flush()
+
+    ce = ClaimEvidence(claim_id=claim.id, evidence_artifact_id=artifact.id)
+    session.add(ce)
+    session.flush()
+
+    # Link evidence snapshot to the case (funding assessments are details of the case)
+    # This way when funding evidence changes, the case becomes STALE
+    add_dependency(session, "SourceSnapshot", snapshot.id, "EvaluationCase", case_id)
+
     session.commit()
 
     return FundingResponse(
@@ -622,4 +818,5 @@ def create_funding_fixture(
         currency=assessment.currency,
         award_amount=str(award_amount) if award_amount else None,
         state=assessment.state,
+        source_url=funding_url,
     )

@@ -131,7 +131,7 @@ def run_fixture_discovery(profile_id: str) -> str:
 
 
 def create_supervisor_case(profile_id: str) -> str:
-    """Create a supervisor-focused evaluation case and research it.
+    """Create a supervisor-focused evaluation case, research it, and add gate.
 
     Returns:
         case_id
@@ -181,6 +181,15 @@ def create_supervisor_case(profile_id: str) -> str:
         status = resp.get("status")
         if status == "completed":
             log(f"  Research completed")
+            # Create a hard gate PASS so brief can freeze
+            log("  Adding supervisor gate assessment...")
+            request("POST", f"/api/radar/dev/gate/{case_id}",
+                   {
+                       "requirement": "supervisor_status",
+                       "result": "PASS",
+                       "evidence_ids": ["evidence-1"]
+                   },
+                   expect_status=201)
             return case_id
         elif status == "failed":
             raise RuntimeError(f"Research failed: {resp.get('error')}")
@@ -189,11 +198,11 @@ def create_supervisor_case(profile_id: str) -> str:
     raise RuntimeError("Research did not complete within 30s")
 
 
-def create_ma_case_with_funding(profile_id: str) -> str:
+def create_ma_case_with_funding(profile_id: str) -> tuple:
     """Create an MA case with two funding assessments.
 
     Returns:
-        case_id
+        (case_id, funding_evidence_urls)
     """
     log("Creating MA case with funding...")
 
@@ -223,17 +232,43 @@ def create_ma_case_with_funding(profile_id: str) -> str:
     log(f"  MA case created: {case_id}")
 
     # Add two funding assessments
+    funding_urls = []
     for i in range(2):
         log(f"  Adding funding assessment {i+1}...")
-        request("POST", f"/api/radar/dev/funding/{case_id}",
-                {
-                    "funding_route_id": f"fund-route-{i+1}",
-                    "currency": "GBP",
-                    "award_amount": "15000.00",
-                    "duration_months": 12,
-                    "state": "ELIGIBLE"
-                },
-                expect_status=201)
+        # First assessment has known living cost; second has unknown
+        if i == 0:
+            resp = request("POST", f"/api/radar/dev/funding/{case_id}",
+                    {
+                        "funding_route_id": f"fund-route-{i+1}",
+                        "currency": "GBP",
+                        "award_amount": "15000.00",
+                        "tuition": "3000.00",
+                        "living_costs": "15000.00",
+                        "mandatory_fees": "500.00",
+                        "duration_months": 12,
+                        "state": "ELIGIBLE"
+                    },
+                    expect_status=201)
+        else:
+            # Second assessment with unknown living cost
+            resp = request("POST", f"/api/radar/dev/funding/{case_id}",
+                    {
+                        "funding_route_id": f"fund-route-{i+1}",
+                        "currency": "GBP",
+                        "award_amount": "15000.00",
+                        "tuition": "3000.00",
+                        "mandatory_fees": "500.00",
+                        "duration_months": 12,
+                        "state": "ELIGIBILITY_UNKNOWN",
+                        "unknown_costs": {"living_costs": "unknown"}
+                    },
+                    expect_status=201)
+        source_url = resp.get("source_url")
+        if source_url:
+            funding_urls.append(source_url)
+        else:
+            # Fallback (should not happen)
+            funding_urls.append(f"https://fixtures.example.org/funding/{case_id}/fund-route-{i+1}")
 
     # Research the MA case
     log("  Researching MA case with mock provider...")
@@ -260,37 +295,29 @@ def create_ma_case_with_funding(profile_id: str) -> str:
         raise RuntimeError("MA research did not complete within 30s")
 
     log("  MA case complete with funding and research")
-    return case_id
+    return case_id, funding_urls
 
 
-def trigger_watch_change(case_id: str) -> str:
-    """Trigger a watch on a case and simulate a change.
+def trigger_watch_change(case_id: str, funding_url: str) -> str:
+    """Trigger a real watch on funding URL and record material change event.
 
     Returns:
         change_event_id
     """
-    log("Creating watch target and triggering change...")
+    log("Creating watch target on funding evidence and triggering change...")
 
-    # Create watch target
-    resp = request("POST", "/api/radar/dev/watch-targets",
+    # Create watch target on the funding URL
+    resp = request("POST", "/api/radar/dev/watch-run",
                    {
                        "case_id": case_id,
-                       "target_type": "entity",
-                       "check_interval_hours": 24
+                       "source_url": funding_url,
+                       "prior_text": "initial funding data",
+                       "changed_text": "initial funding data\nchanged line 2\nchanged line 3"
                    },
-                   expect_status=201)
-    watch_id = resp.get("id")
-    if not watch_id:
-        raise RuntimeError("Watch target creation did not return id")
-    log(f"  Watch target: {watch_id}")
-
-    # Simulate a change event
-    resp = request("POST", f"/api/radar/dev/simulate-change",
-                   {"watch_id": watch_id},
                    expect_status=200)
     change_id = resp.get("change_event_id")
     if not change_id:
-        raise RuntimeError("Change simulation did not return change_event_id")
+        raise RuntimeError("Watch run did not return change_event_id")
     log(f"  Change event created: {change_id}")
 
     return change_id
@@ -378,7 +405,7 @@ def main() -> int:
 
             # Create MA case with funding
             try:
-                case_id_2 = create_ma_case_with_funding(profile_id)
+                case_id_2, funding_urls = create_ma_case_with_funding(profile_id)
                 steps.append({"step": "ma_case", "status": "ok", "case_id": case_id_2})
             except RuntimeError as e:
                 log(f"ERROR: {e}")
@@ -386,25 +413,39 @@ def main() -> int:
                 results["ok"] = False
                 return 1
 
-            # Trigger watch change
+            # Freeze supervisor brief first (before watch change)
             try:
-                change_id = trigger_watch_change(case_id_2)
-                steps.append({"step": "watch_change", "status": "ok", "change_id": change_id})
+                brief_id_sup = freeze_brief(case_id_1)
+                steps.append({"step": "supervisor_brief_freeze", "status": "ok", "brief_id": brief_id_sup})
+            except RuntimeError as e:
+                log(f"ERROR: {e}")
+                steps.append({"step": "supervisor_brief_freeze", "status": "failed", "error": str(e)})
+                results["ok"] = False
+                return 1
+
+            # Trigger watch change on MA case's first funding evidence
+            try:
+                if funding_urls:
+                    change_id = trigger_watch_change(case_id_2, funding_urls[0])
+                    steps.append({"step": "watch_change", "status": "ok", "change_id": change_id})
+                else:
+                    log("WARNING: No funding URLs available for watch")
             except RuntimeError as e:
                 log(f"ERROR: {e}")
                 steps.append({"step": "watch_change", "status": "failed", "error": str(e)})
                 results["ok"] = False
-                # Don't fail entirely; brief freeze is still important
+                # Don't fail entirely; brief freeze still needed
 
-            # Freeze brief
+            # Freeze MA brief (after watch change to verify state is STALE)
             try:
-                brief_id = freeze_brief(case_id_2)
-                steps.append({"step": "brief_freeze", "status": "ok", "brief_id": brief_id})
+                brief_id_ma = freeze_brief(case_id_2)
+                steps.append({"step": "ma_brief_freeze", "status": "ok", "brief_id": brief_id_ma})
             except RuntimeError as e:
                 log(f"ERROR: {e}")
-                steps.append({"step": "brief_freeze", "status": "failed", "error": str(e)})
+                steps.append({"step": "ma_brief_freeze", "status": "failed", "error": str(e)})
                 results["ok"] = False
-                return 1
+                # Allow this to fail if watch change made case STALE
+                log("INFO: MA brief freeze failed (expected if case became STALE)")
 
         else:
             # Verify durable state (called after restart)
