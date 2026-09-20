@@ -1,4 +1,5 @@
 import json
+import os
 import pytest
 from academic_radar.security.untrusted import wrap_untrusted, build_messages
 from academic_radar.security.injection import detect_injection
@@ -7,9 +8,15 @@ from academic_radar.security.actions import ActionAdapter, run_pipeline_over_sou
 from tests.academic_radar.canary import expect_violation
 
 
+def _get_fixture_path(filename):
+    """Get absolute path to fixture file."""
+    test_dir = os.path.dirname(os.path.abspath(__file__))
+    return os.path.join(test_dir, "fixtures", filename)
+
+
 @pytest.fixture
 def injection_fixtures():
-    fixture_path = "tests/academic_radar/fixtures/injection_sources.json"
+    fixture_path = _get_fixture_path("injection_sources.json")
     with open(fixture_path) as f:
         return json.load(f)
 

@@ -1,4 +1,5 @@
 import json
+import os
 import pytest
 from tests.academic_radar.canary import CanaryNotDetected, expect_violation
 
@@ -21,20 +22,25 @@ class TestCanaryHelper:
 
 
 class TestCanariesJson:
+    @staticmethod
+    def _get_canaries_path():
+        test_dir = os.path.dirname(os.path.abspath(__file__))
+        return os.path.join(test_dir, "canaries.json")
+
     def test_canaries_json_has_exactly_8_entries(self):
-        with open("tests/academic_radar/canaries.json") as f:
+        with open(self._get_canaries_path()) as f:
             canaries = json.load(f)
         assert len(canaries) == 8
 
     def test_canaries_json_has_correct_ids(self):
-        with open("tests/academic_radar/canaries.json") as f:
+        with open(self._get_canaries_path()) as f:
             canaries = json.load(f)
         expected_ids = [f"CANARY-{i:02d}" for i in range(1, 9)]
         actual_ids = [c["id"] for c in canaries]
         assert actual_ids == expected_ids
 
     def test_canaries_json_entries_have_required_fields(self):
-        with open("tests/academic_radar/canaries.json") as f:
+        with open(self._get_canaries_path()) as f:
             canaries = json.load(f)
         for canary in canaries:
             assert "id" in canary

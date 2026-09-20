@@ -1,43 +1,6 @@
-# Runner status (2026-09-20 12:40)
+# Runner status (2026-09-20 14:25)
 
-Counts: {'done': 49, 'deferred': 1, 'blocked': 1, 'pending': 1}
+Counts: {'done': 50, 'deferred': 1, 'pending': 1}
 
 ## DEFERRED (needs stronger model) P03b — Author the REAL profile seed YAML from session memory v0.2
 Convert ../_radar_private/MOZARE_ACADEMIC_RADAR_SESSION_MEMORY_v0.2.md (sections 3, 4, 10) into ../_radar_private/profile_seed.yaml following the P03a schema; set PROFILE_SEED_PATH in the local .env. Never commit it.
-
-## BLOCKED P22c — Persist research results for real (run, coverage, claims, evidence links, dependencies, state)
-# Blocker: P22c - Status value mismatch
-
-## What I tried
-- Implemented run_research service to persist research results
-- Created fixtures module to generate mock provider and evidence
-- Updated /research and /research-status endpoints to call run_research
-- Updated rc_smoke.py to research both cases
-- Used status='COMPLETED' based on the database constraint in radar_models_evidence.py
-
-## Exact error
-The independent verifier smoke_assertions.py queries for:
-```sql
-select * from radar_research_runs where case_id=? and status='COMPLETE'
-```
-
-But the database model radar_models_evidence.py defines the CHECK constraint as:
-```
-status IN ('QUEUED', 'RUNNING', 'CANCELLING', 'COMPLETED', 'PARTIAL', 'FAILED', 'CANCELLED')
-```
-
-This means:
-- smoke_assertions expects status='COMPLETE' (3 options matching 'COMPLETE')
-- The database constraint only allows 'COMPLETED' (not 'COMPLETE')
-- The spec says "status COMPLETE if compute_readiness says ready else PARTIAL"
-
-Attempting to insert 'COMPLETE' fails the CHECK constraint with:
-```
-sqlalchemy.exc.IntegrityError: CHECK constraint failed: status IN ('QUEUED', 'RUNNING', 'CANCELLING', 'COMPLETED', 'PARTIAL', 'FAILED', 'CANCELLED')
-```
-
-## The ONE question that unblocks you
-Should the database model constraint allow 'COMPLETE' in addition to 'COMPLETED', or should smoke_assertions.py be checking for 'COMPLETED' instead?
-
-Note: I cannot edit smoke_assertions.py (protected) or astra/db/radar_models_evidence.py (not in allowed paths).
-

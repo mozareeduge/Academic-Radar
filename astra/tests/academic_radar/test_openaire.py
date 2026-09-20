@@ -19,31 +19,37 @@ def mock_http_get():
     return Mock()
 
 
+def _get_fixture_path(filename):
+    """Get absolute path to fixture file."""
+    test_dir = os.path.dirname(os.path.abspath(__file__))
+    return os.path.join(test_dir, "fixtures", filename)
+
+
 @pytest.fixture
 def openaire_persons_fixture():
     """Load OpenAIRE persons fixture."""
-    with open('tests/academic_radar/fixtures/openaire_persons.json') as f:
+    with open(_get_fixture_path('openaire_persons.json')) as f:
         return json.load(f)
 
 
 @pytest.fixture
 def openaire_projects_fixture():
     """Load OpenAIRE projects fixture."""
-    with open('tests/academic_radar/fixtures/openaire_projects.json') as f:
+    with open(_get_fixture_path('openaire_projects.json')) as f:
         return json.load(f)
 
 
 @pytest.fixture
 def openaire_organizations_fixture():
     """Load OpenAIRE organizations fixture."""
-    with open('tests/academic_radar/fixtures/openaire_organizations.json') as f:
+    with open(_get_fixture_path('openaire_organizations.json')) as f:
         return json.load(f)
 
 
 @pytest.fixture
 def openaire_research_products_fixture():
     """Load OpenAIRE research products fixture."""
-    with open('tests/academic_radar/fixtures/openaire_research_products.json') as f:
+    with open(_get_fixture_path('openaire_research_products.json')) as f:
         return json.load(f)
 
 

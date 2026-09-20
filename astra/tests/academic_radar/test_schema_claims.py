@@ -37,9 +37,11 @@ def alembic_config():
         # Run alembic in a subprocess to avoid state issues
         env = os.environ.copy()
         env["DATABASE_URL"] = db_url
+        astra_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         result = subprocess.run(
             [sys.executable, "-m", "alembic", "upgrade", "head"],
             env=env,
+            cwd=astra_dir,
             capture_output=True,
             text=True,
         )

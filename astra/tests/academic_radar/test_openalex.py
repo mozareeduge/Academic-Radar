@@ -1,4 +1,5 @@
 import json
+import os
 import pytest
 import socket
 from unittest.mock import Mock, patch
@@ -12,6 +13,12 @@ def mock_resolver_public(hostname, family):
     return [(socket.AF_INET, socket.SOCK_STREAM, 6, "", ("93.184.216.34", 80))]
 
 
+def _get_fixture_path(filename):
+    """Get absolute path to fixture file."""
+    test_dir = os.path.dirname(os.path.abspath(__file__))
+    return os.path.join(test_dir, "fixtures", filename)
+
+
 @pytest.fixture
 def mock_http_get():
     """Mock HTTP GET function."""
@@ -21,14 +28,14 @@ def mock_http_get():
 @pytest.fixture
 def openalex_authors_fixture():
     """Load OpenAlex authors fixture."""
-    with open('tests/academic_radar/fixtures/openalex_authors.json') as f:
+    with open(_get_fixture_path('openalex_authors.json')) as f:
         return json.load(f)
 
 
 @pytest.fixture
 def openalex_works_fixture():
     """Load OpenAlex works fixture."""
-    with open('tests/academic_radar/fixtures/openalex_works.json') as f:
+    with open(_get_fixture_path('openalex_works.json')) as f:
         return json.load(f)
 
 
