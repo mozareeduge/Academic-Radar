@@ -32,6 +32,11 @@ def check(config: dict, sha: str) -> None:
         if "ALL" not in services[name].get("cap_drop", []):
             raise ValueError(f"{name} retains capabilities")
 
+    for name in ("api", "dashboard"):
+        for port in services[name].get("ports", []):
+            if port.get("host_ip") != "127.0.0.1":
+                raise ValueError(f"{name} exposes a direct public port: {port}")
+
     api_env = services["api"].get("environment", {})
     worker_env = services["radar-worker"].get("environment", {})
     if not api_env.get("RADAR_OWNER_EMAIL"):
