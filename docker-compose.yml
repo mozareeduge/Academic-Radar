@@ -37,6 +37,8 @@ services:
       REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
       RADAR_FIXTURE_MODE: ${RADAR_FIXTURE_MODE:-0}
       RADAR_OWNER_EMAIL: ${RADAR_OWNER_EMAIL:-}
+      RADAR_RESEARCH_PROVIDER: ${RADAR_RESEARCH_PROVIDER:-}
+      RADAR_RESEARCH_MODEL: ${RADAR_RESEARCH_MODEL:-}
     volumes:
       - astra-data:/data
     healthcheck:
@@ -95,6 +97,14 @@ services:
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
       REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
       RADAR_FIXTURE_MODE: ${RADAR_FIXTURE_MODE:-0}
+      RADAR_RESEARCH_PROVIDER: ${RADAR_RESEARCH_PROVIDER:-}
+      RADAR_RESEARCH_MODEL: ${RADAR_RESEARCH_MODEL:-}
+      LLM_MODEL_CHAIN: ${LLM_MODEL_CHAIN:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      OLLAMA_HOST: ${OLLAMA_HOST:-}
+      LLM_MONTHLY_CAP_USD: ${LLM_MONTHLY_CAP_USD:-}
     depends_on:
       redis:
         condition: service_healthy
