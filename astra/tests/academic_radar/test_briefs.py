@@ -29,6 +29,7 @@ from db.radar_models_claims import Claim, GateAssessment, ClaimEvidence
 from db.radar_models_evidence import EvidenceArtifact, SourceSnapshot
 from db.radar_models_watch import ApplicationBrief, BriefDependency
 from db.radar_models_targets import TargetEntity
+from api.routes.radar_cases import _case_to_out
 
 
 def make_temp_db():
@@ -245,6 +246,82 @@ def test_brief_lists_dependencies(db_session: Session, setup_case_with_evidence)
     assert any(d.dependency_id == snapshot_id for d in deps)
 
 
+def test_case_truth_is_shared_by_projection_and_freeze(db_session: Session, setup_case_with_evidence):
+    case_id = setup_case_with_evidence["case_id"]
+    case = db_session.get(EvaluationCase, case_id)
+    out = _case_to_out(db_session, case)
+    assert out.blockers == []
+    assert out.unknown_count == 0
+    assert out.deadline is None
+    assert out.freshness is None  # No class-level freshness has been proven.
+    assert out.brief_block_reasons == []
+    assert freeze_brief(db_session, case_id)
+
+
+@pytest.mark.parametrize("column,value,reason", [
+    ("user_disposition", "WATCH", "Case disposition must be ACT"),
+    ("research_state", "RESEARCHING", "Case research must be EVIDENCE_READY"),
+    ("research_state", "STALE", "Case research is stale"),
+])
+def test_case_state_blocks_projection_and_freeze(
+    db_session: Session, setup_case_with_evidence, column, value, reason,
+):
+    case_id = setup_case_with_evidence["case_id"]
+    case = db_session.get(EvaluationCase, case_id)
+    setattr(case, column, value)
+    db_session.flush()
+    out = _case_to_out(db_session, case)
+    assert reason in out.brief_block_reasons
+    with pytest.raises(BriefBlocked) as exc:
+        freeze_brief(db_session, case_id)
+    assert reason in exc.value.reasons
+
+
+@pytest.mark.parametrize("result,reason", [
+    ("FAIL", "Hard gate failed: English proficiency"),
+    ("UNKNOWN", "Hard gate unknown: English proficiency"),
+    ("STALE", "Hard gate stale: English proficiency"),
+])
+def test_gate_result_blocks_projection_and_freeze(
+    db_session: Session, setup_case_with_evidence, result, reason,
+):
+    case_id = setup_case_with_evidence["case_id"]
+    gate = db_session.get(GateAssessment, "gate-1")
+    gate.result = result
+    db_session.flush()
+    out = _case_to_out(db_session, db_session.get(EvaluationCase, case_id))
+    assert reason in out.brief_block_reasons
+    if result == "FAIL":
+        assert out.blockers[0]["status"] == "FAIL"
+    if result == "UNKNOWN":
+        assert out.unknown_count == 1
+    with pytest.raises(BriefBlocked) as exc:
+        freeze_brief(db_session, case_id)
+    assert reason in exc.value.reasons
+
+
+def test_supported_claim_without_evidence_cannot_be_frozen(db_session: Session, setup_case_with_evidence):
+    case_id = setup_case_with_evidence["case_id"]
+    db_session.query(ClaimEvidence).filter(ClaimEvidence.claim_id == "claim-1").delete()
+    db_session.flush()
+    out = _case_to_out(db_session, db_session.get(EvaluationCase, case_id))
+    assert "Supported claim lacks evidence: Programme accepts international students" in out.brief_block_reasons
+    with pytest.raises(BriefBlocked):
+        freeze_brief(db_session, case_id)
+
+
+def test_noncritical_unknown_is_visible_but_does_not_block_brief(db_session: Session, setup_case_with_evidence):
+    case_id = setup_case_with_evidence["case_id"]
+    db_session.add(Claim(case_id=case_id, statement="Department culture", claim_type="INFERENCE", status="UNKNOWN"))
+    db_session.flush()
+    out = _case_to_out(db_session, db_session.get(EvaluationCase, case_id))
+    assert out.unknown_count == 1
+    assert out.brief_block_reasons == []
+    brief_id = freeze_brief(db_session, case_id)
+    brief = db_session.get(ApplicationBrief, brief_id)
+    assert any(claim["status"] == "UNKNOWN" for claim in brief.content["claims"])
+
+
 def test_brief_unchanged_snapshot_not_superseded(db_session: Session, setup_case_with_evidence):
     """Brief not superseded when snapshot fingerprint unchanged."""
     case_id = setup_case_with_evidence["case_id"]
@@ -296,8 +373,8 @@ def test_brief_old_content_untouched_after_supersession(db_session: Session, set
     assert is_superseded(db_session, brief_id)
 
 
-def test_stale_evidence_blocks_freeze(db_session: Session):
-    """Freeze blocked if evidence is stale beyond freshness threshold."""
+def test_unclassified_evidence_age_does_not_invent_class_freshness(db_session: Session):
+    """An artifact's age cannot be compared to the unrelated DEADLINE threshold."""
     now = datetime.now(timezone.utc)
     stale_time = now - timedelta(days=31)
 
@@ -427,10 +504,13 @@ def test_stale_evidence_blocks_freeze(db_session: Session):
 
     db_session.commit()
 
+    assert freeze_brief(db_session, case_id)
+    claim = db_session.get(Claim, claim_id)
+    claim.status = "STALE"
+    db_session.flush()
     with pytest.raises(BriefBlocked) as exc_info:
         freeze_brief(db_session, case_id)
-
-    assert len(exc_info.value.reasons) > 0
+    assert any("Claim stale" in reason for reason in exc_info.value.reasons)
 
 
 def test_unknown_hard_gate_blocks_freeze(db_session: Session):

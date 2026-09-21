@@ -51,6 +51,7 @@ from academic_radar.domain.enums import GateResult, ClaimStatus, ResearchState
 from academic_radar.domain.protocols import Protocol
 from academic_radar.research.protocol_loader import load_protocols
 from academic_radar.domain.freshness import is_stale
+from academic_radar.domain.case_truth import case_truth
 
 
 class BriefBlocked(Exception):
@@ -296,10 +297,7 @@ def freeze_brief(
 
     now = datetime.now(timezone.utc)
 
-    stale_reasons = _check_stale_critical_facts(session, case, protocol, now)
-    unknown_reasons = _check_unknown_hard_gates(session, case)
-
-    blocked_reasons = stale_reasons + unknown_reasons
+    blocked_reasons = case_truth(session, case, protocol, now=now).brief_block_reasons
     if blocked_reasons:
         raise BriefBlocked(blocked_reasons)
 
