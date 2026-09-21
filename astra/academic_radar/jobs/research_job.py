@@ -122,10 +122,17 @@ def _resolve_provider(session: Session, case_id: str, config: dict, deps: dict):
     if config["provider_id"] == "litellm":
         evidence_lookup = deps.get("evidence_lookup") or {}
         if not evidence_lookup:
-            raise ValueError(
-                "No case-scoped evidence bound to this run; "
-                "evidence binding required before live research"
-            )
+            # Acquire and bind case-scoped evidence through the audited fetch
+            # boundary; fail closed when nothing can be bound, so a live model
+            # can never receive no sources and fabricate coverage.
+            from academic_radar.evidence.binding import bind_or_fail
+            from db.radar_models_cases import EvaluationCase
+
+            case = session.get(EvaluationCase, case_id)
+            if case is None:
+                raise ValueError("Research case not found")
+            outcome = bind_or_fail(session, case)
+            evidence_lookup = outcome["evidence_lookup"]
         from academic_radar.research.provider import LiteLLMProvider
 
         return LiteLLMProvider(config["model_id"]), evidence_lookup

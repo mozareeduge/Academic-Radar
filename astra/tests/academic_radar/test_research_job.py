@@ -301,6 +301,72 @@ class TestResolveProviderFailClosed:
             assert provider.model == "test/model"
             assert lookup == {"evt-1": {"url": "https://example.com/test"}}
 
+    def test_litellm_without_lookup_binds_case_scoped_evidence(self, db_engine):
+        """No injected lookup: the worker binds the case's canonical source."""
+        from academic_radar.jobs.research_job import _resolve_provider
+        from db.radar_models_targets import TargetEntity as TE
+
+        with Session(db_engine) as session:
+            case = _make_case(session)
+            # Give the case target a canonical URL and a fetchable page.
+            target = session.get(TE, case.target_id)
+            target.canonical_url = "https://example.com/person"
+            session.commit()
+
+            import academic_radar.evidence.binding as binding
+            from academic_radar.security.fetch import FetchResult
+
+            calls = []
+
+            def fake_fetch(url, **kwargs):
+                calls.append(url)
+                return FetchResult(
+                    url=url, status=200, content_type="text/html",
+                    body_bytes=b"<html>Profile page</html>", error=None,
+                )
+
+            original = binding.DEFAULT_FETCH
+            binding.DEFAULT_FETCH = fake_fetch
+            try:
+                provider, lookup = _resolve_provider(
+                    session, case.id, dict(LITELLM_CONFIG), {"run_id": "x"},
+                )
+            finally:
+                binding.DEFAULT_FETCH = original
+
+            assert calls == ["https://example.com/person"]
+            assert len(lookup) == 1
+            artifact = session.get(EvidenceArtifact, next(iter(lookup)))
+            assert artifact.source_url == "https://example.com/person"
+
+    def test_litellm_without_lookup_and_unfetchable_source_fails_closed(self, db_engine):
+        """A blocked fetch means nothing binds and the run must fail closed."""
+        from academic_radar.jobs.research_job import _resolve_provider
+        from db.radar_models_targets import TargetEntity as TE
+
+        with Session(db_engine) as session:
+            case = _make_case(session)
+            target = session.get(TE, case.target_id)
+            target.canonical_url = "https://example.com/person"
+            session.commit()
+
+            import academic_radar.evidence.binding as binding
+            from academic_radar.security.fetch import FetchResult
+
+            def blocked_fetch(url, **kwargs):
+                return FetchResult(
+                    url=url, status=None, content_type=None, body_bytes=None,
+                    error="URL blocked by policy: private address",
+                )
+
+            original = binding.DEFAULT_FETCH
+            binding.DEFAULT_FETCH = blocked_fetch
+            try:
+                with pytest.raises(ValueError, match="evidence binding required"):
+                    _resolve_provider(session, case.id, dict(LITELLM_CONFIG), {"run_id": "x"})
+            finally:
+                binding.DEFAULT_FETCH = original
+
 
 class TestResearchCaseJob:
     """Worker advances one durable run row through its lifecycle."""
