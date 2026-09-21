@@ -22,6 +22,7 @@ from db.radar_models_cases import EvaluationCase
 from db.radar_models_evidence import EvidenceArtifact, ResearchRun, ResearchCoverage
 from db.radar_models_claims import Claim, ClaimEvidence
 from academic_radar.security.redact import redact
+from academic_radar.jobs.research_job import provider_config, research_queue, enqueue_research
 
 router = APIRouter(prefix="/api/radar", tags=["radar"])
 
@@ -194,32 +195,48 @@ def post_research(
     if not case:
         raise HTTPException(status_code=404, detail=f"Case {case_id} not found")
 
-    # If run_key provided, check for existing run with that key
+    # A caller-supplied key identifies one durable run for this case.
     run_key = body.run_key
     if run_key:
-        # Search all runs for this case and check run_identity
         runs = session.query(ResearchRun).filter(
             ResearchRun.case_id == case_id
         ).all()
         for r in runs:
-            if r.run_identity and r.run_identity.get("run_id") == run_key:
+            if r.run_identity and r.run_identity.get("run_key") == run_key:
                 return ResearchPostOut(run_id=r.id)
 
-    # Create new research run
+    try:
+        config = provider_config()
+        queue = research_queue()
+    except (ValueError, RuntimeError, OSError, ConnectionError) as exc:
+        raise HTTPException(status_code=503, detail=f"Research unavailable: {exc}") from exc
+
+    from academic_radar.research.protocol_loader import load_protocols
+    protocol = load_protocols().get(case.application_route)
+    if protocol is None:
+        raise HTTPException(status_code=422, detail="Research protocol unavailable for case route")
+
     run = ResearchRun(
         case_id=case_id,
-        protocol_version="1.0",
-        status="QUEUED"
+        protocol_version=protocol.version,
+        model_id=config["model_id"],
+        provider_id=config["provider_id"],
+        status="QUEUED",
     )
     session.add(run)
     session.flush()
 
-    # Set run_identity with run_key (or use run.id as the key)
     key_for_identity = run_key or run.id
-    run.run_identity = {
-        "run_id": key_for_identity
-    }
+    run.run_identity = {"run_key": key_for_identity, "run_id": run.id}
     session.commit()
+
+    try:
+        enqueue_research(case_id, queue, key_for_identity, run.id, config)
+    except Exception as exc:
+        run.status = "FAILED"
+        run.run_identity = {**run.run_identity, "failure_reason": "QUEUE_UNAVAILABLE"}
+        session.commit()
+        raise HTTPException(status_code=503, detail="Research queue unavailable") from exc
 
     return ResearchPostOut(run_id=run.id)
 
@@ -250,16 +267,16 @@ def get_run(
             )
 
         run_identity_out = RunIdentityOut(
-            model_id=run.run_identity.get("model_id"),
-            provider_id=run.run_identity.get("provider_id"),
-            prompt_hash=run.run_identity.get("prompt_hash"),
-            schema_version=run.run_identity.get("schema_version"),
-            protocol_version=run.run_identity.get("protocol_version"),
-            run_id=run.run_identity.get("run_id")
+            model_id=run.model_id,
+            provider_id=run.provider_id,
+            prompt_hash=run.prompt_hash,
+            schema_version=run.schema_version,
+            protocol_version=run.protocol_version,
+            run_id=run.id
         )
 
     return RunOut(
         status=run.status,
-        failure_reason=None,
+        failure_reason=(run.run_identity or {}).get("failure_reason"),
         run_identity=run_identity_out
     )

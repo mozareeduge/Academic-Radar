@@ -15,6 +15,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 from sqlalchemy.pool import StaticPool
+from unittest.mock import MagicMock
 
 from api.app import app
 from api.deps import get_db
@@ -389,6 +390,15 @@ class TestCoverageCases:
 class TestResearchPost:
     """POST /cases/{id}/research."""
 
+    @pytest.fixture(autouse=True)
+    def configured_queue(self, monkeypatch):
+        from api.routes import radar_evidence
+        queue = MagicMock()
+        queue.enqueue.return_value.id = "job-1"
+        monkeypatch.setattr(radar_evidence, "provider_config", lambda: {"provider_id": "litellm", "model_id": "test/model"})
+        monkeypatch.setattr(radar_evidence, "research_queue", lambda: queue)
+        self.queue = queue
+
     def test_research_enqueues_job_and_returns_run_id(self, client, auth, db_session):
         """POST /cases/{id}/research enqueues research job and returns run id."""
         case = make_case(db_session)
@@ -408,6 +418,12 @@ class TestResearchPost:
         run = db_session.query(ResearchRun).filter(ResearchRun.id == run_id).first()
         assert run is not None
         assert run.case_id == case.id
+        assert run.status == "QUEUED"
+        assert run.model_id == "test/model"
+        assert run.provider_id == "litellm"
+        args, kwargs = self.queue.enqueue.call_args
+        assert args[1:3] == (case.id, run.id)
+        assert kwargs["kwargs"]["deps"]["run_id"] == run.id
 
     def test_research_post_twice_same_key_does_not_enqueue_twice(self, client, auth, db_session):
         """POST research twice with same key does not enqueue twice."""
@@ -434,6 +450,28 @@ class TestResearchPost:
 
         # Should be the same run (idempotent)
         assert run_id_1 == run_id_2
+        assert self.queue.enqueue.call_count == 1
+
+    def test_queue_failure_marks_run_failed(self, client, auth, db_session, monkeypatch):
+        case = make_case(db_session)
+        db_session.commit()
+        self.queue.enqueue.side_effect = ConnectionError("redis down")
+
+        resp = client.post(f"/api/radar/cases/{case.id}/research", headers=auth, json={})
+        assert resp.status_code == 503
+        run = db_session.query(ResearchRun).filter_by(case_id=case.id).one()
+        assert run.status == "FAILED"
+        assert run.run_identity["failure_reason"] == "QUEUE_UNAVAILABLE"
+
+    def test_missing_provider_config_creates_no_run(self, client, auth, db_session, monkeypatch):
+        from api.routes import radar_evidence
+        case = make_case(db_session)
+        db_session.commit()
+        monkeypatch.setattr(radar_evidence, "provider_config", lambda: (_ for _ in ()).throw(ValueError("unconfigured")))
+
+        resp = client.post(f"/api/radar/cases/{case.id}/research", headers=auth, json={})
+        assert resp.status_code == 503
+        assert db_session.query(ResearchRun).filter_by(case_id=case.id).count() == 0
 
 
 class TestRunsGet:
