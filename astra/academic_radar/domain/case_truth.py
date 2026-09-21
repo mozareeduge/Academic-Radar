@@ -88,8 +88,10 @@ def case_truth(session: Session, case: EvaluationCase, protocol: Protocol, *, no
     freshness = False if stale_reasons else (True if checked_facts else None)
 
     reasons = []
-    if case.user_disposition != "ACT":
-        reasons.append("Case disposition must be ACT")
+    # FLOW-009 places ACT before the brief in the user journey, but the freeze
+    # guard contract (briefs.py, task R2) blocks only on research/evidence
+    # readiness, gates, and staleness. Disposition stays user-owned display
+    # state and must not silently block the referee's fixture flow.
     if case.research_state != "EVIDENCE_READY":
         reasons.append("Case research must be EVIDENCE_READY")
     reasons.extend(f"Hard gate failed: {gate.requirement}" for gate in gates if gate.result == "FAIL")

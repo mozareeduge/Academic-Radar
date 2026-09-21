@@ -265,7 +265,6 @@ def test_case_truth_is_shared_by_projection_and_freeze(db_session: Session, setu
 
 
 @pytest.mark.parametrize("column,value,reason", [
-    ("user_disposition", "WATCH", "Case disposition must be ACT"),
     ("research_state", "RESEARCHING", "Case research must be EVIDENCE_READY"),
     ("research_state", "STALE", "Case research is stale"),
 ])
@@ -281,6 +280,17 @@ def test_case_state_blocks_projection_and_freeze(
     with pytest.raises(BriefBlocked) as exc:
         freeze_brief(db_session, case_id)
     assert reason in exc.value.reasons
+
+
+def test_user_disposition_does_not_block_freeze(db_session: Session, setup_case_with_evidence):
+    """Disposition is user-owned journey state, not a freeze guard condition."""
+    case_id = setup_case_with_evidence["case_id"]
+    case = db_session.get(EvaluationCase, case_id)
+    case.user_disposition = "WATCH"
+    db_session.flush()
+    out = _case_to_out(db_session, case)
+    assert out.brief_block_reasons == []
+    assert freeze_brief(db_session, case_id)
 
 
 @pytest.mark.parametrize("result,reason", [
