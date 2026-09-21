@@ -223,6 +223,7 @@ def setup_case_with_evidence(db_session: Session):
         "snapshot_id": snapshot_id,
         "artifact_id": artifact_id,
         "claim_id": claim_id,
+        "gate_id": gate_id,
     }
 
 
@@ -244,6 +245,11 @@ def test_brief_lists_dependencies(db_session: Session, setup_case_with_evidence)
     ).all()
     assert len(deps) > 0
     assert any(d.dependency_id == snapshot_id for d in deps)
+    # Every decision-relevant row is a dependency, not only gates with evidence.
+    assert any(
+        d.dependency_kind == "GateAssessment" and d.dependency_id == setup_case_with_evidence["gate_id"]
+        for d in deps
+    )
 
 
 def test_case_truth_is_shared_by_projection_and_freeze(db_session: Session, setup_case_with_evidence):
@@ -370,6 +376,117 @@ def test_brief_old_content_untouched_after_supersession(db_session: Session, set
     ).one()
 
     assert brief_after.content == content_before
+    assert is_superseded(db_session, brief_id)
+
+
+def test_brief_superseded_by_appended_snapshot(db_session: Session, setup_case_with_evidence):
+    """A newer snapshot for the same URL supersedes the frozen one (append-only)."""
+    case_id = setup_case_with_evidence["case_id"]
+    snapshot_id = setup_case_with_evidence["snapshot_id"]
+    now = datetime.now(timezone.utc)
+
+    brief_id = freeze_brief(db_session, case_id)
+    assert not is_superseded(db_session, brief_id)
+
+    frozen = db_session.query(SourceSnapshot).filter(SourceSnapshot.id == snapshot_id).one()
+    assert frozen.fingerprint == "hash-v1"  # append-only: frozen row untouched
+
+    db_session.execute(
+        text("""
+            INSERT INTO radar_source_snapshots
+            (id, source_url, state, fingerprint, captured_at, created_at, updated_at)
+            VALUES (:id, :source_url, :state, :fingerprint, :captured_at, :created_at, :updated_at)
+        """),
+        {
+            "id": "snap-2-newer",
+            "source_url": "https://example.com/programme",
+            "state": "CHANGED",
+            "fingerprint": "hash-v2",
+            "captured_at": now + timedelta(minutes=5),
+            "created_at": now + timedelta(minutes=5),
+            "updated_at": now + timedelta(minutes=5),
+        },
+    )
+    db_session.commit()
+
+    assert is_superseded(db_session, brief_id)
+
+
+def test_brief_not_superseded_by_unrelated_snapshot(db_session: Session, setup_case_with_evidence):
+    """A new snapshot for an unrelated URL does not supersede the brief."""
+    case_id = setup_case_with_evidence["case_id"]
+    now = datetime.now(timezone.utc)
+
+    brief_id = freeze_brief(db_session, case_id)
+
+    db_session.execute(
+        text("""
+            INSERT INTO radar_source_snapshots
+            (id, source_url, state, fingerprint, captured_at, created_at, updated_at)
+            VALUES (:id, :source_url, :state, :fingerprint, :captured_at, :created_at, :updated_at)
+        """),
+        {
+            "id": "snap-other",
+            "source_url": "https://example.com/other-page",
+            "state": "CAPTURED",
+            "fingerprint": "hash-other",
+            "captured_at": now + timedelta(minutes=5),
+            "created_at": now + timedelta(minutes=5),
+            "updated_at": now + timedelta(minutes=5),
+        },
+    )
+    db_session.commit()
+
+    assert not is_superseded(db_session, brief_id)
+
+
+def test_brief_superseded_by_gate_result_change(db_session: Session, setup_case_with_evidence):
+    """A gate result change after freeze supersedes the brief."""
+    case_id = setup_case_with_evidence["case_id"]
+
+    brief_id = freeze_brief(db_session, case_id)
+    assert not is_superseded(db_session, brief_id)
+
+    db_session.execute(
+        text("UPDATE radar_gate_assessments SET result = :r WHERE case_id = :cid"),
+        {"r": "FAIL", "cid": case_id},
+    )
+    db_session.commit()
+
+    assert is_superseded(db_session, brief_id)
+
+
+def test_brief_superseded_by_funding_state_change(db_session: Session, setup_case_with_evidence):
+    """A funding state change after freeze supersedes the brief."""
+    case_id = setup_case_with_evidence["case_id"]
+    now = datetime.now(timezone.utc)
+
+    db_session.execute(
+        text("""
+            INSERT INTO radar_funding_assessments
+            (id, case_id, funding_route_id, currency, state, created_at, updated_at)
+            VALUES (:id, :cid, :rid, :cur, :state, :cat, :uat)
+        """),
+        {
+            "id": "funding-1",
+            "cid": case_id,
+            "rid": "target-prog",
+            "cur": "EUR",
+            "state": "ELIGIBLE",
+            "cat": now,
+            "uat": now,
+        },
+    )
+    db_session.commit()
+
+    brief_id = freeze_brief(db_session, case_id)
+    assert not is_superseded(db_session, brief_id)
+
+    db_session.execute(
+        text("UPDATE radar_funding_assessments SET state = 'FORMALLY_BLOCKED' WHERE id = 'funding-1'")
+    )
+    db_session.commit()
+
     assert is_superseded(db_session, brief_id)
 
 
