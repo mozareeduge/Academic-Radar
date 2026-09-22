@@ -1,258 +1,151 @@
-"""RQ wrapper for deep-research jobs with idempotency and provider error handling."""
+"""RQ research worker and explicit provider configuration.
 
-import json
+Only primitive configuration crosses the queue boundary. No provider object or
+database engine is pickled into a job, and no empty mock is used in production.
+"""
+
+from __future__ import annotations
+
 import logging
+import os
 import time
 from typing import Optional
-from sqlalchemy import select
+
+from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
-log = logging.getLogger(__name__)
+from db.radar_models_evidence import ResearchRun
 
-# Max retries on provider error (2 additional attempts after initial)
+log = logging.getLogger(__name__)
 MAX_RETRIES = 2
 RETRY_BACKOFF_S = 1.0
 
 
-def research_case_job(
-    case_id: str,
-    run_key: str,
-    *,
-    deps: dict,
-) -> Optional[dict]:
-    """Execute deep-research workflow with idempotency.
-
-    This is the RQ worker entrypoint. It runs the nine-node LangGraph workflow
-    for a case, idempotent on run_key: if a run with that key already has
-    status COMPLETED it returns it without re-running.
-
-    On provider error, retries at most MAX_RETRIES times via caller-injected
-    sleep. After exhausting retries, records status FAILED with a classified
-    failure reason (PROVIDER_TIMEOUT | INVALID_OUTPUT | SOURCE_BLOCKED |
-    UNKNOWN).
-
-    Never writes user_disposition.
-
-    Args:
-        case_id: The evaluation case ID.
-        run_key: Idempotency key (usually derived from case_id + protocol).
-        deps: Dict with 'provider' (LLMProvider), 'protocol' (ResearchProtocol),
-              'evidence_lookup' (dict), 'engine' (optional, defaults to resolve_db_url()),
-              and optional 'sleep_fn' (defaults to time.sleep).
-
-    Returns:
-        The graph result dict (claims, coverage, readiness) or None if the job failed.
-    """
-    sleep_fn = deps.get("sleep_fn", time.sleep)
-
-    if "engine" in deps:
-        engine = deps["engine"]
-    else:
-        from sqlalchemy import create_engine
-        from db.init import resolve_db_url
-        db_url = resolve_db_url()
-        engine = create_engine(db_url)
-
-    with Session(engine) as session:
-        from db.radar_models_evidence import ResearchRun
-        from academic_radar.research.graph import build_graph
-
-        # Check idempotency: look for COMPLETED run with this run_key in run_identity
-        existing = _find_run_by_key(session, case_id, run_key)
-        if existing and existing.status == "COMPLETED":
-            log.info(
-                "research job %s (case=%s): run_key already COMPLETED, returning existing",
-                run_key,
-                case_id,
-            )
-            return _serialize_run(existing)
-
-        # Get or create the run record
-        if existing:
-            run = existing
-            run.status = "RUNNING"
-        else:
-            protocol_version = "unknown"
-            if "protocol" in deps:
-                protocol = deps["protocol"]
-                if hasattr(protocol, "protocol_version"):
-                    protocol_version = protocol.protocol_version
-                elif hasattr(protocol, "version"):
-                    protocol_version = protocol.version
-
-            run = ResearchRun(
-                case_id=case_id,
-                status="RUNNING",
-                protocol_version=protocol_version,
-                run_identity={"run_key": run_key},
-            )
-            session.add(run)
-        session.commit()
-
-        # Now attempt the graph execution with retries
-        provider = deps.get("provider")
-        protocol = deps.get("protocol")
-        evidence_lookup = deps.get("evidence_lookup", {})
-
-        if not provider or not protocol:
-            run.status = "FAILED"
-            session.commit()
-            log.error("research job %s: missing provider or protocol", run_key)
-            return None
-
-        attempt = 0
-        last_error_reason = None
-
-        while attempt < MAX_RETRIES + 1:
-            try:
-                from academic_radar.research.service import run_research
-                result_run_id = run_research(session, case_id, provider, evidence_lookup, run_key=run_key)
-                log.info(
-                    "research job %s (case=%s): completed successfully",
-                    run_key,
-                    case_id,
-                )
-                # Return the result (re-fetch the persisted run)
-                persisted_run = session.query(ResearchRun).filter_by(id=result_run_id).first()
-                return {
-                    "id": persisted_run.id,
-                    "case_id": persisted_run.case_id,
-                    "status": persisted_run.status,
-                }
-
-            except TimeoutError as e:
-                last_error_reason = "PROVIDER_TIMEOUT"
-                attempt += 1
-                if attempt <= MAX_RETRIES:
-                    log.warning(
-                        "research job %s: timeout on attempt %d/%d, retrying after backoff",
-                        run_key,
-                        attempt,
-                        MAX_RETRIES + 1,
-                    )
-                    sleep_fn(RETRY_BACKOFF_S)
-                else:
-                    log.error(
-                        "research job %s: PROVIDER_TIMEOUT after %d attempts",
-                        run_key,
-                        MAX_RETRIES + 1,
-                    )
-
-            except ValueError as e:
-                # Classify ValueError — could be INVALID_OUTPUT or SOURCE_BLOCKED
-                error_str = str(e).lower()
-                if "blocked" in error_str or "forbidden" in error_str:
-                    last_error_reason = "SOURCE_BLOCKED"
-                else:
-                    last_error_reason = "INVALID_OUTPUT"
-                attempt += 1
-                if attempt <= MAX_RETRIES:
-                    log.warning(
-                        "research job %s: %s on attempt %d/%d, retrying after backoff",
-                        run_key,
-                        last_error_reason,
-                        attempt,
-                        MAX_RETRIES + 1,
-                    )
-                    sleep_fn(RETRY_BACKOFF_S)
-                else:
-                    log.error(
-                        "research job %s: %s after %d attempts",
-                        run_key,
-                        last_error_reason,
-                        MAX_RETRIES + 1,
-                    )
-
-            except Exception as e:
-                last_error_reason = "UNKNOWN"
-                attempt += 1
-                if attempt <= MAX_RETRIES:
-                    log.warning(
-                        "research job %s: %s on attempt %d/%d, retrying after backoff",
-                        run_key,
-                        str(e),
-                        attempt,
-                        MAX_RETRIES + 1,
-                    )
-                    sleep_fn(RETRY_BACKOFF_S)
-                else:
-                    log.error(
-                        "research job %s: %s after %d attempts",
-                        run_key,
-                        str(e),
-                        MAX_RETRIES + 1,
-                    )
-
-        # All retries exhausted
-        run.status = "FAILED"
-        session.commit()
-        log.error(
-            "research job %s: failed with reason=%s",
-            run_key,
-            last_error_reason or "UNKNOWN",
-        )
-        return None
+def provider_config() -> dict[str, str]:
+    """Select a provider explicitly; fixture mode is the sole mock path."""
+    if os.environ.get("RADAR_FIXTURE_MODE") == "1":
+        return {"provider_id": "fixture", "model_id": "fixture-script"}
+    provider_id = os.environ.get("RADAR_RESEARCH_PROVIDER", "").strip().lower()
+    model_id = os.environ.get("RADAR_RESEARCH_MODEL", "").strip()
+    if provider_id != "litellm" or not model_id:
+        raise ValueError("Set RADAR_RESEARCH_PROVIDER=litellm and RADAR_RESEARCH_MODEL")
+    return {"provider_id": provider_id, "model_id": model_id}
 
 
-def _find_run_by_key(session: Session, case_id: str, run_key: str) -> Optional["ResearchRun"]:
-    """Find a ResearchRun by case_id and run_key stored in run_identity."""
-    from db.radar_models_evidence import ResearchRun
+def research_queue():
+    """Return the dedicated RQ queue, requiring reachable Redis."""
+    import redis
+    from rq import Queue
 
-    runs = session.scalars(
-        select(ResearchRun).where(ResearchRun.case_id == case_id)
-    ).all()
-    for run in runs:
-        if run.run_identity and isinstance(run.run_identity, dict):
-            if run.run_identity.get("run_key") == run_key:
-                return run
-    return None
+    url = os.environ.get("REDIS_URL", "").strip()
+    if not url:
+        raise RuntimeError("REDIS_URL is required for research jobs")
+    client = redis.from_url(url, socket_connect_timeout=0.5, socket_timeout=1.0)
+    client.ping()
+    return Queue("research", connection=client)
 
 
-def enqueue_research(case_id: str, queue) -> str:
-    """Enqueue a research job on the given RQ queue (named 'research').
-
-    Args:
-        case_id: The evaluation case ID.
-        queue: The RQ Queue instance.
-
-    Returns:
-        The job ID.
-    """
-    from academic_radar.research.provider import MockProvider
-    from academic_radar.research.protocol_loader import load_protocols
-
-    # For now use a basic mock provider and protocol
-    # In real use, these come from deps passed to the job
-    provider = MockProvider({})
-    protocols = load_protocols()
-    protocol = protocols["SUPERVISOR_FIRST_PHD"]
-
-    run_key = f"{case_id}:supervisor_v1"
-
+def enqueue_research(case_id: str, queue, run_key: str, run_id: str, config: dict[str, str]) -> str:
+    """Submit one durable run using JSON-safe arguments only."""
     job = queue.enqueue(
         research_case_job,
         case_id,
         run_key,
-        kwargs={
-            "deps": {
-                "provider": provider,
-                "protocol": protocol,
-                "evidence_lookup": {},
-            }
-        },
-        job_id=f"research-{run_key}",
+        kwargs={"deps": {"run_id": run_id, "config": config}},
+        job_id=f"research-{run_id}",
         result_ttl=3600,
         failure_ttl=86400,
     )
     return job.id
 
 
-def _serialize_run(run) -> dict:
-    """Serialize a ResearchRun for return."""
-    return {
-        "id": run.id,
-        "case_id": run.case_id,
-        "status": run.status,
-        "created_at": run.created_at.isoformat() if run.created_at else None,
-        "updated_at": run.updated_at.isoformat() if run.updated_at else None,
-    }
+def research_case_job(case_id: str, run_key: str, *, deps: dict) -> Optional[dict]:
+    """Advance QUEUED -> RUNNING -> COMPLETED/PARTIAL/FAILED on one row."""
+    from db.init import resolve_db_url
+
+    engine = deps.get("engine") or create_engine(resolve_db_url())
+    run_id = deps["run_id"]
+    config = deps["config"]
+    sleep_fn = deps.get("sleep_fn", time.sleep)
+
+    with Session(engine) as session:
+        run = session.get(ResearchRun, run_id)
+        if run is None or run.case_id != case_id or (run.run_identity or {}).get("run_key") != run_key:
+            raise ValueError("Queued research run identity mismatch")
+        if run.status in {"COMPLETED", "PARTIAL"}:
+            return _serialize_run(run)
+        if run.status == "CANCELLED":
+            return None
+        run.status = "RUNNING"
+        session.commit()
+
+        reason = "UNKNOWN"
+        for attempt in range(MAX_RETRIES + 1):
+            try:
+                provider, evidence_lookup = _resolve_provider(session, case_id, config, deps)
+                from academic_radar.research.service import run_research
+
+                run_research(
+                    session, case_id, provider, evidence_lookup,
+                    run_key=run_key, run_id=run_id,
+                    model_id=config["model_id"], provider_id=config["provider_id"],
+                )
+                session.refresh(run)
+                return _serialize_run(run)
+            except Exception as exc:
+                session.rollback()
+                reason = _failure_reason(exc)
+                log.warning("research run %s attempt %s failed: %s", run_id, attempt + 1, reason)
+                if attempt < MAX_RETRIES:
+                    sleep_fn(RETRY_BACKOFF_S)
+
+        run = session.get(ResearchRun, run_id)
+        run.status = "FAILED"
+        run.run_identity = {**(run.run_identity or {}), "failure_reason": reason}
+        session.commit()
+        return None
+
+
+def _resolve_provider(session: Session, case_id: str, config: dict, deps: dict):
+    if "provider" in deps:  # deterministic unit-test seam; never serialized by the API
+        return deps["provider"], deps.get("evidence_lookup", {})
+    if config["provider_id"] == "fixture":
+        if os.environ.get("RADAR_FIXTURE_MODE") != "1":
+            raise ValueError("Fixture provider disabled")
+        from academic_radar.research.fixtures import fixture_evidence_and_provider
+        from db.radar_models_cases import EvaluationCase
+
+        case = session.get(EvaluationCase, case_id)
+        if case is None:
+            raise ValueError("Research case not found")
+        return fixture_evidence_and_provider(session, case)
+    if config["provider_id"] == "litellm":
+        evidence_lookup = deps.get("evidence_lookup") or {}
+        if not evidence_lookup:
+            # Acquire and bind case-scoped evidence through the audited fetch
+            # boundary; fail closed when nothing can be bound, so a live model
+            # can never receive no sources and fabricate coverage.
+            from academic_radar.evidence.binding import bind_or_fail
+            from db.radar_models_cases import EvaluationCase
+
+            case = session.get(EvaluationCase, case_id)
+            if case is None:
+                raise ValueError("Research case not found")
+            outcome = bind_or_fail(session, case)
+            evidence_lookup = outcome["evidence_lookup"]
+        from academic_radar.research.provider import LiteLLMProvider
+
+        return LiteLLMProvider(config["model_id"]), evidence_lookup
+    raise ValueError("Unsupported research provider")
+
+
+def _failure_reason(exc: Exception) -> str:
+    if isinstance(exc, TimeoutError):
+        return "PROVIDER_TIMEOUT"
+    if isinstance(exc, ValueError):
+        return "SOURCE_BLOCKED" if any(word in str(exc).lower() for word in ("blocked", "forbidden")) else "INVALID_OUTPUT"
+    return "UNKNOWN"
+
+
+def _serialize_run(run: ResearchRun) -> dict:
+    return {"id": run.id, "case_id": run.case_id, "status": run.status}

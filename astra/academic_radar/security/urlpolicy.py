@@ -28,7 +28,13 @@ def check_url(url, resolver=socket.getaddrinfo):
     Raises:
         UrlBlocked: if URL violates SSRF policy
     """
-    parsed = urlparse(url)
+    try:
+        parsed = urlparse(url)
+        # Reject malformed ports before a transport can interpret the URL differently.
+        _ = parsed.port
+        hostname = parsed.hostname
+    except ValueError as exc:
+        raise UrlBlocked(f"Malformed URL: {exc}") from exc
 
     # Check scheme
     if parsed.scheme not in ("http", "https"):
@@ -39,16 +45,14 @@ def check_url(url, resolver=socket.getaddrinfo):
         raise UrlBlocked("URL contains userinfo (username/password); userinfo not allowed")
 
     # Check host exists
-    if not parsed.hostname:
+    if not hostname:
         raise UrlBlocked("URL missing hostname")
-
-    hostname = parsed.hostname
 
     # Try to parse as IP address directly first
     try:
         ip = ipaddress.ip_address(hostname)
         _check_ip_blocked(ip)
-        return
+        return (str(ip),)
     except ValueError:
         # Not an IP address, resolve via DNS
         pass
@@ -56,13 +60,14 @@ def check_url(url, resolver=socket.getaddrinfo):
     # Resolve hostname
     try:
         results = resolver(hostname, socket.AF_UNSPEC)
-    except socket.gaierror:
+    except (socket.gaierror, OSError):
         raise UrlBlocked(f"Could not resolve hostname: {hostname}")
 
     if not results:
         raise UrlBlocked(f"No address records found for hostname: {hostname}")
 
     # Check all resolved IPs
+    addresses = []
     for result in results:
         family, socktype, proto, canonname, sockaddr = result
         ip_str = sockaddr[0]
@@ -70,8 +75,10 @@ def check_url(url, resolver=socket.getaddrinfo):
         try:
             ip = ipaddress.ip_address(ip_str)
             _check_ip_blocked(ip)
+            addresses.append(str(ip))
         except ValueError:
             raise UrlBlocked(f"Invalid IP address: {ip_str}")
+    return tuple(dict.fromkeys(addresses))
 
 
 def _check_ip_blocked(ip):

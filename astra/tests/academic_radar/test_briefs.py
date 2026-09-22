@@ -29,6 +29,7 @@ from db.radar_models_claims import Claim, GateAssessment, ClaimEvidence
 from db.radar_models_evidence import EvidenceArtifact, SourceSnapshot
 from db.radar_models_watch import ApplicationBrief, BriefDependency
 from db.radar_models_targets import TargetEntity
+from api.routes.radar_cases import _case_to_out
 
 
 def make_temp_db():
@@ -222,6 +223,7 @@ def setup_case_with_evidence(db_session: Session):
         "snapshot_id": snapshot_id,
         "artifact_id": artifact_id,
         "claim_id": claim_id,
+        "gate_id": gate_id,
     }
 
 
@@ -243,6 +245,97 @@ def test_brief_lists_dependencies(db_session: Session, setup_case_with_evidence)
     ).all()
     assert len(deps) > 0
     assert any(d.dependency_id == snapshot_id for d in deps)
+    # Every decision-relevant row is a dependency, not only gates with evidence.
+    assert any(
+        d.dependency_kind == "GateAssessment" and d.dependency_id == setup_case_with_evidence["gate_id"]
+        for d in deps
+    )
+
+
+def test_case_truth_is_shared_by_projection_and_freeze(db_session: Session, setup_case_with_evidence):
+    case_id = setup_case_with_evidence["case_id"]
+    case = db_session.get(EvaluationCase, case_id)
+    out = _case_to_out(db_session, case)
+    assert out.blockers == []
+    assert out.unknown_count == 0
+    assert out.deadline is None
+    assert out.freshness is None  # No class-level freshness has been proven.
+    assert out.brief_block_reasons == []
+    assert freeze_brief(db_session, case_id)
+
+
+@pytest.mark.parametrize("column,value,reason", [
+    ("research_state", "RESEARCHING", "Case research must be EVIDENCE_READY"),
+    ("research_state", "STALE", "Case research is stale"),
+])
+def test_case_state_blocks_projection_and_freeze(
+    db_session: Session, setup_case_with_evidence, column, value, reason,
+):
+    case_id = setup_case_with_evidence["case_id"]
+    case = db_session.get(EvaluationCase, case_id)
+    setattr(case, column, value)
+    db_session.flush()
+    out = _case_to_out(db_session, case)
+    assert reason in out.brief_block_reasons
+    with pytest.raises(BriefBlocked) as exc:
+        freeze_brief(db_session, case_id)
+    assert reason in exc.value.reasons
+
+
+def test_user_disposition_does_not_block_freeze(db_session: Session, setup_case_with_evidence):
+    """Disposition is user-owned journey state, not a freeze guard condition."""
+    case_id = setup_case_with_evidence["case_id"]
+    case = db_session.get(EvaluationCase, case_id)
+    case.user_disposition = "WATCH"
+    db_session.flush()
+    out = _case_to_out(db_session, case)
+    assert out.brief_block_reasons == []
+    assert freeze_brief(db_session, case_id)
+
+
+@pytest.mark.parametrize("result,reason", [
+    ("FAIL", "Hard gate failed: English proficiency"),
+    ("UNKNOWN", "Hard gate unknown: English proficiency"),
+    ("STALE", "Hard gate stale: English proficiency"),
+])
+def test_gate_result_blocks_projection_and_freeze(
+    db_session: Session, setup_case_with_evidence, result, reason,
+):
+    case_id = setup_case_with_evidence["case_id"]
+    gate = db_session.get(GateAssessment, "gate-1")
+    gate.result = result
+    db_session.flush()
+    out = _case_to_out(db_session, db_session.get(EvaluationCase, case_id))
+    assert reason in out.brief_block_reasons
+    if result == "FAIL":
+        assert out.blockers[0]["status"] == "FAIL"
+    if result == "UNKNOWN":
+        assert out.unknown_count == 1
+    with pytest.raises(BriefBlocked) as exc:
+        freeze_brief(db_session, case_id)
+    assert reason in exc.value.reasons
+
+
+def test_supported_claim_without_evidence_cannot_be_frozen(db_session: Session, setup_case_with_evidence):
+    case_id = setup_case_with_evidence["case_id"]
+    db_session.query(ClaimEvidence).filter(ClaimEvidence.claim_id == "claim-1").delete()
+    db_session.flush()
+    out = _case_to_out(db_session, db_session.get(EvaluationCase, case_id))
+    assert "Supported claim lacks evidence: Programme accepts international students" in out.brief_block_reasons
+    with pytest.raises(BriefBlocked):
+        freeze_brief(db_session, case_id)
+
+
+def test_noncritical_unknown_is_visible_but_does_not_block_brief(db_session: Session, setup_case_with_evidence):
+    case_id = setup_case_with_evidence["case_id"]
+    db_session.add(Claim(case_id=case_id, statement="Department culture", claim_type="INFERENCE", status="UNKNOWN"))
+    db_session.flush()
+    out = _case_to_out(db_session, db_session.get(EvaluationCase, case_id))
+    assert out.unknown_count == 1
+    assert out.brief_block_reasons == []
+    brief_id = freeze_brief(db_session, case_id)
+    brief = db_session.get(ApplicationBrief, brief_id)
+    assert any(claim["status"] == "UNKNOWN" for claim in brief.content["claims"])
 
 
 def test_brief_unchanged_snapshot_not_superseded(db_session: Session, setup_case_with_evidence):
@@ -296,8 +389,119 @@ def test_brief_old_content_untouched_after_supersession(db_session: Session, set
     assert is_superseded(db_session, brief_id)
 
 
-def test_stale_evidence_blocks_freeze(db_session: Session):
-    """Freeze blocked if evidence is stale beyond freshness threshold."""
+def test_brief_superseded_by_appended_snapshot(db_session: Session, setup_case_with_evidence):
+    """A newer snapshot for the same URL supersedes the frozen one (append-only)."""
+    case_id = setup_case_with_evidence["case_id"]
+    snapshot_id = setup_case_with_evidence["snapshot_id"]
+    now = datetime.now(timezone.utc)
+
+    brief_id = freeze_brief(db_session, case_id)
+    assert not is_superseded(db_session, brief_id)
+
+    frozen = db_session.query(SourceSnapshot).filter(SourceSnapshot.id == snapshot_id).one()
+    assert frozen.fingerprint == "hash-v1"  # append-only: frozen row untouched
+
+    db_session.execute(
+        text("""
+            INSERT INTO radar_source_snapshots
+            (id, source_url, state, fingerprint, captured_at, created_at, updated_at)
+            VALUES (:id, :source_url, :state, :fingerprint, :captured_at, :created_at, :updated_at)
+        """),
+        {
+            "id": "snap-2-newer",
+            "source_url": "https://example.com/programme",
+            "state": "CHANGED",
+            "fingerprint": "hash-v2",
+            "captured_at": now + timedelta(minutes=5),
+            "created_at": now + timedelta(minutes=5),
+            "updated_at": now + timedelta(minutes=5),
+        },
+    )
+    db_session.commit()
+
+    assert is_superseded(db_session, brief_id)
+
+
+def test_brief_not_superseded_by_unrelated_snapshot(db_session: Session, setup_case_with_evidence):
+    """A new snapshot for an unrelated URL does not supersede the brief."""
+    case_id = setup_case_with_evidence["case_id"]
+    now = datetime.now(timezone.utc)
+
+    brief_id = freeze_brief(db_session, case_id)
+
+    db_session.execute(
+        text("""
+            INSERT INTO radar_source_snapshots
+            (id, source_url, state, fingerprint, captured_at, created_at, updated_at)
+            VALUES (:id, :source_url, :state, :fingerprint, :captured_at, :created_at, :updated_at)
+        """),
+        {
+            "id": "snap-other",
+            "source_url": "https://example.com/other-page",
+            "state": "CAPTURED",
+            "fingerprint": "hash-other",
+            "captured_at": now + timedelta(minutes=5),
+            "created_at": now + timedelta(minutes=5),
+            "updated_at": now + timedelta(minutes=5),
+        },
+    )
+    db_session.commit()
+
+    assert not is_superseded(db_session, brief_id)
+
+
+def test_brief_superseded_by_gate_result_change(db_session: Session, setup_case_with_evidence):
+    """A gate result change after freeze supersedes the brief."""
+    case_id = setup_case_with_evidence["case_id"]
+
+    brief_id = freeze_brief(db_session, case_id)
+    assert not is_superseded(db_session, brief_id)
+
+    db_session.execute(
+        text("UPDATE radar_gate_assessments SET result = :r WHERE case_id = :cid"),
+        {"r": "FAIL", "cid": case_id},
+    )
+    db_session.commit()
+
+    assert is_superseded(db_session, brief_id)
+
+
+def test_brief_superseded_by_funding_state_change(db_session: Session, setup_case_with_evidence):
+    """A funding state change after freeze supersedes the brief."""
+    case_id = setup_case_with_evidence["case_id"]
+    now = datetime.now(timezone.utc)
+
+    db_session.execute(
+        text("""
+            INSERT INTO radar_funding_assessments
+            (id, case_id, funding_route_id, currency, state, created_at, updated_at)
+            VALUES (:id, :cid, :rid, :cur, :state, :cat, :uat)
+        """),
+        {
+            "id": "funding-1",
+            "cid": case_id,
+            "rid": "target-prog",
+            "cur": "EUR",
+            "state": "ELIGIBLE",
+            "cat": now,
+            "uat": now,
+        },
+    )
+    db_session.commit()
+
+    brief_id = freeze_brief(db_session, case_id)
+    assert not is_superseded(db_session, brief_id)
+
+    db_session.execute(
+        text("UPDATE radar_funding_assessments SET state = 'FORMALLY_BLOCKED' WHERE id = 'funding-1'")
+    )
+    db_session.commit()
+
+    assert is_superseded(db_session, brief_id)
+
+
+def test_unclassified_evidence_age_does_not_invent_class_freshness(db_session: Session):
+    """An artifact's age cannot be compared to the unrelated DEADLINE threshold."""
     now = datetime.now(timezone.utc)
     stale_time = now - timedelta(days=31)
 
@@ -427,10 +631,13 @@ def test_stale_evidence_blocks_freeze(db_session: Session):
 
     db_session.commit()
 
+    assert freeze_brief(db_session, case_id)
+    claim = db_session.get(Claim, claim_id)
+    claim.status = "STALE"
+    db_session.flush()
     with pytest.raises(BriefBlocked) as exc_info:
         freeze_brief(db_session, case_id)
-
-    assert len(exc_info.value.reasons) > 0
+    assert any("Claim stale" in reason for reason in exc_info.value.reasons)
 
 
 def test_unknown_hard_gate_blocks_freeze(db_session: Session):

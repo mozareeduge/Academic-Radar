@@ -2,6 +2,12 @@
 
 This runbook covers local development and release-candidate deployment of the Mozare Academic Radar using Docker Compose.
 
+The `release-validate` CI job runs on branch pushes and pull requests after the
+backend, dashboard, dependency, and fixture Compose gates. It renders the
+production overlay, checks the dependency graph and fixture setting, builds
+images tagged with the candidate commit SHA, verifies non-root runtime users,
+and starts API, Radar worker, Redis, and dashboard. It does not deploy.
+
 ## Quick Start
 
 ### Prerequisites
@@ -20,6 +26,7 @@ This runbook covers local development and release-candidate deployment of the Mo
    - `ASTRA_SECRET_KEY`: Generate with `python -c "import secrets; print(secrets.token_urlsafe(48))"`
    - `CORS_ORIGINS`: Set to `http://localhost:3000` for local development
    - `RADAR_FIXTURE_MODE`: Set to `1` to enable fixture-backed testing
+   - `RADAR_OWNER_EMAIL`: Email of the sole account allowed to use the normal Radar API. Set this before opening the private workspace; an unset value makes those routes unavailable.
 
 ## Starting Services
 

@@ -436,16 +436,30 @@ def main() -> int:
                 results["ok"] = False
                 # Don't fail entirely; brief freeze still needed
 
-            # Freeze MA brief (after watch change to verify state is STALE)
+            # Freeze MA brief after the watch-triggered invalidation. The freeze
+            # is EXPECTED to be refused (422 Brief blocked, staleness reasons):
+            # invalidate() marks the changed evidence's case STALE, and
+            # ORACLE-032 requires a frozen brief to refuse stale facts. The
+            # freeze succeeding here would mean the guard regressed.
             try:
                 brief_id_ma = freeze_brief(case_id_2)
                 steps.append({"step": "ma_brief_freeze", "status": "ok", "brief_id": brief_id_ma})
-            except RuntimeError as e:
-                log(f"ERROR: {e}")
-                steps.append({"step": "ma_brief_freeze", "status": "failed", "error": str(e)})
+                log("ERROR: MA brief freeze succeeded after STALE invalidation - guard regressed")
                 results["ok"] = False
-                # Allow this to fail if watch change made case STALE
-                log("INFO: MA brief freeze failed (expected if case became STALE)")
+            except RuntimeError as e:
+                if "Brief blocked" not in str(e) or not any(
+                    word in str(e) for word in ("stale", "STALE")
+                ):
+                    log(f"ERROR: {e}")
+                    steps.append({"step": "ma_brief_freeze", "status": "failed", "error": str(e)})
+                    results["ok"] = False
+                else:
+                    steps.append({
+                        "step": "ma_brief_freeze_refused",
+                        "status": "ok",
+                        "note": "freeze correctly refused stale case (ORACLE-032)",
+                    })
+                    log("OK: MA brief freeze correctly refused (case STALE after invalidation)")
 
         else:
             # Verify durable state (called after restart)

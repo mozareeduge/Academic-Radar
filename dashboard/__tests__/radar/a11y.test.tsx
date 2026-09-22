@@ -58,7 +58,8 @@ const mockRadarQueue = {
       blockers: [],
       unknown_count: 0,
       deadline: { original_text: "15 Jan 2027", precision: "DATE_ONLY" },
-      freshness: true,
+  freshness: true,
+  brief_block_reasons: [],
     },
     {
       id: "case-2",
@@ -86,7 +87,8 @@ const mockCaseDossier = {
     original_text: "15 January 2027",
     precision: "DATE_ONLY" as const,
   },
-  freshness: true
+  freshness: true,
+  brief_block_reasons: []
 };
 
 describe("Accessibility and Responsive Tests (P20)", () => {

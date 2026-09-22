@@ -14,6 +14,11 @@ services:
     restart: unless-stopped
     security_opt: ["no-new-privileges:true"]
     cap_drop: [ALL]
+    # redis:7-alpine's entrypoint drops root via setpriv when started as uid 0,
+    # which needs CAP_SETUID/CAP_SETGID that cap_drop:[ALL] removes. Starting
+    # the container directly as the image's non-root redis user (uid/gid 999)
+    # skips that step entirely, so it still runs non-root under cap_drop:[ALL].
+    user: "999:999"
 
   api:
     restart: unless-stopped
@@ -21,6 +26,8 @@ services:
     cap_drop: [ALL]
     environment:
       ASTRA_SECRET_KEY: ${ASTRA_SECRET_KEY:?ASTRA_SECRET_KEY must be set in production}
+      RADAR_OWNER_EMAIL: ${RADAR_OWNER_EMAIL:?RADAR_OWNER_EMAIL must name the single Radar owner}
+      RADAR_FIXTURE_MODE: "0"
       CORS_ORIGINS: ${CORS_ORIGINS:?CORS_ORIGINS must list the production dashboard origin}
       API_WORKERS: ${API_WORKERS:-1}
       ASTRA_SCHEDULER_ENABLED: ${ASTRA_SCHEDULER_ENABLED:-1}
@@ -41,6 +48,8 @@ services:
       ASSISTANT_DAILY_LIMIT: ${ASSISTANT_DAILY_LIMIT:-50}
       LLM_MONTHLY_CAP_USD: ${LLM_MONTHLY_CAP_USD:-}
       ASTRA_JSON_LOGS: ${ASTRA_JSON_LOGS:-1}
+      RADAR_RESEARCH_PROVIDER: ${RADAR_RESEARCH_PROVIDER:-}
+      RADAR_RESEARCH_MODEL: ${RADAR_RESEARCH_MODEL:-}
     expose:
       - "8000"
     stop_grace_period: 30s
@@ -63,6 +72,22 @@ services:
       OLLAMA_HOST: ${OLLAMA_HOST:-}
       ADS_API_TOKEN: ${ADS_API_TOKEN:-}
       OPENALEX_MAILTO: ${OPENALEX_MAILTO:-}
+    stop_grace_period: 30s
+
+  radar-worker:
+    restart: unless-stopped
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+    environment:
+      RADAR_FIXTURE_MODE: "0"
+      RADAR_RESEARCH_PROVIDER: ${RADAR_RESEARCH_PROVIDER:-}
+      RADAR_RESEARCH_MODEL: ${RADAR_RESEARCH_MODEL:-}
+      LLM_MODEL_CHAIN: ${LLM_MODEL_CHAIN:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      OLLAMA_HOST: ${OLLAMA_HOST:-}
+      LLM_MONTHLY_CAP_USD: ${LLM_MONTHLY_CAP_USD:-}
     stop_grace_period: 30s
 
   dashboard:

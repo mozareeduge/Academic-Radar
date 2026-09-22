@@ -51,6 +51,7 @@ from academic_radar.domain.enums import GateResult, ClaimStatus, ResearchState
 from academic_radar.domain.protocols import Protocol
 from academic_radar.research.protocol_loader import load_protocols
 from academic_radar.domain.freshness import is_stale
+from academic_radar.domain.case_truth import case_truth
 
 
 class BriefBlocked(Exception):
@@ -59,6 +60,10 @@ class BriefBlocked(Exception):
     def __init__(self, reasons: list[str]):
         self.reasons = reasons
         super().__init__("; ".join(reasons))
+
+
+def _utc(value: datetime) -> datetime:
+    return value if value.tzinfo else value.replace(tzinfo=timezone.utc)
 
 
 @dataclass
@@ -229,7 +234,13 @@ def _record_dependencies(
     brief_id: str,
     case: EvaluationCase,
 ) -> None:
-    """Record dependencies from brief to all current evidence snapshots."""
+    """Record dependencies from brief to current evidence and decision facts.
+
+    SourceSnapshot deps record the latest snapshot per URL as of freeze time —
+    evidence is append-only, so a later snapshot for the same URL is the live
+    fact. GateAssessment, FundingAssessment, and DimensionAssessment deps
+    record one dependency per decision-relevant row with its decision value.
+    """
     artifacts = session.query(EvidenceArtifact).join(
         ClaimEvidence,
         ClaimEvidence.evidence_artifact_id == EvidenceArtifact.id,
@@ -240,31 +251,50 @@ def _record_dependencies(
         Claim.case_id == case.id,
     ).distinct().all()
 
-    for artifact in artifacts:
-        if artifact.snapshot_id:
-            snapshot = session.query(SourceSnapshot).filter(
-                SourceSnapshot.id == artifact.snapshot_id
-            ).one()
+    latest_by_url: dict[str, EvidenceArtifact] = {}
+    for artifact in sorted(artifacts, key=lambda a: a.retrieved_at or datetime.min.replace(tzinfo=timezone.utc)):
+        if not artifact.snapshot_id:
+            continue
+        latest_by_url[artifact.source_url] = artifact
 
-            dep = BriefDependency(
-                brief_id=brief_id,
-                dependency_kind="SourceSnapshot",
-                dependency_id=snapshot.id,
-                dependency_version=snapshot.fingerprint,
-            )
-            session.add(dep)
+    for artifact in latest_by_url.values():
+        snapshot = session.query(SourceSnapshot).filter(
+            SourceSnapshot.id == artifact.snapshot_id
+        ).one()
+        dep = BriefDependency(
+            brief_id=brief_id,
+            dependency_kind="SourceSnapshot",
+            dependency_id=snapshot.id,
+            dependency_version=snapshot.fingerprint,
+        )
+        session.add(dep)
 
     for gate in session.query(GateAssessment).filter(GateAssessment.case_id == case.id).all():
-        if gate.evidence_ids:
-            for evidence_id in gate.evidence_ids:
-                dep = BriefDependency(
-                    brief_id=brief_id,
-                    dependency_kind="GateAssessment",
-                    dependency_id=gate.id,
-                    dependency_version=gate.result,
-                )
-                session.add(dep)
-                break
+        dep = BriefDependency(
+            brief_id=brief_id,
+            dependency_kind="GateAssessment",
+            dependency_id=gate.id,
+            dependency_version=gate.result,
+        )
+        session.add(dep)
+
+    for item in session.query(FundingAssessment).filter(FundingAssessment.case_id == case.id).all():
+        dep = BriefDependency(
+            brief_id=brief_id,
+            dependency_kind="FundingAssessment",
+            dependency_id=item.id,
+            dependency_version=item.state,
+        )
+        session.add(dep)
+
+    for dim in session.query(DimensionAssessment).filter(DimensionAssessment.case_id == case.id).all():
+        dep = BriefDependency(
+            brief_id=brief_id,
+            dependency_kind="DimensionAssessment",
+            dependency_id=dim.id,
+            dependency_version=None if dim.value is None else str(dim.value),
+        )
+        session.add(dep)
 
     session.flush()
 
@@ -296,10 +326,7 @@ def freeze_brief(
 
     now = datetime.now(timezone.utc)
 
-    stale_reasons = _check_stale_critical_facts(session, case, protocol, now)
-    unknown_reasons = _check_unknown_hard_gates(session, case)
-
-    blocked_reasons = stale_reasons + unknown_reasons
+    blocked_reasons = case_truth(session, case, protocol, now=now).brief_block_reasons
     if blocked_reasons:
         raise BriefBlocked(blocked_reasons)
 
@@ -323,8 +350,18 @@ def freeze_brief(
 def is_superseded(session: Session, brief_id: str) -> bool:
     """Check if a brief has been superseded by dependency changes.
 
-    A brief is superseded when any recorded dependency's snapshot fingerprint has
-    changed (or the snapshot is missing). The old brief content remains untouched.
+    A brief is superseded when any recorded dependency no longer matches
+    current state:
+
+    - SourceSnapshot: the snapshot row is missing, its fingerprint changed,
+      OR a newer snapshot exists for the same source URL. Evidence is
+      append-only — re-fetch appends a new snapshot and the frozen one stops
+      being the live fact even though its own row is never mutated.
+    - GateAssessment: the gate is missing or its result changed.
+    - FundingAssessment: the assessment is missing or its state changed.
+    - DimensionAssessment: the assessment is missing or its value changed.
+
+    The old brief content remains untouched.
 
     Args:
         session: Database session.
@@ -349,6 +386,42 @@ def is_superseded(session: Session, brief_id: str) -> bool:
                 return True
 
             if dep.dependency_version != snapshot.fingerprint:
+                return True
+
+            # Append-only snapshots: a newer snapshot for the same URL
+            # supersedes the one frozen in the brief. Compare in Python with
+            # normalized timezones — SQLite stores datetimes as strings and a
+            # SQL-side comparison would pit the stored format against the
+            # bound-parameter format, letting a row match itself.
+            candidates = session.query(SourceSnapshot).filter(
+                SourceSnapshot.source_url == snapshot.source_url,
+                SourceSnapshot.id != snapshot.id,
+            ).all()
+            frozen_at = _utc(snapshot.captured_at)
+            for candidate in candidates:
+                if _utc(candidate.captured_at) > frozen_at:
+                    return True
+
+        elif dep.dependency_kind == "GateAssessment":
+            gate = session.query(GateAssessment).filter(
+                GateAssessment.id == dep.dependency_id
+            ).one_or_none()
+            if not gate or gate.result != dep.dependency_version:
+                return True
+
+        elif dep.dependency_kind == "FundingAssessment":
+            item = session.query(FundingAssessment).filter(
+                FundingAssessment.id == dep.dependency_id
+            ).one_or_none()
+            if not item or item.state != dep.dependency_version:
+                return True
+
+        elif dep.dependency_kind == "DimensionAssessment":
+            dim = session.query(DimensionAssessment).filter(
+                DimensionAssessment.id == dep.dependency_id
+            ).one_or_none()
+            current_version = None if (not dim or dim.value is None) else str(dim.value)
+            if not dim or current_version != dep.dependency_version:
                 return True
 
     return False

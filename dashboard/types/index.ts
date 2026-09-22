@@ -497,6 +497,7 @@ export interface RadarCase {
   unknown_count: number;
   deadline?: { original_text: string | null; precision?: string | null } | null;
   freshness?: boolean | null;
+  brief_block_reasons?: string[];
 }
 
 // --- Case Dossier (P15a) -------------------------------------------------------
@@ -532,7 +533,8 @@ export interface CaseDossier {
   blockers: CaseBlocker[];
   unknown_count: number;
   deadline: CaseDeadline | null;
-  freshness: boolean;
+  freshness: boolean | null;
+  brief_block_reasons: string[];
   // Backend GET /api/radar/cases/{id} (CaseOut) does not serve these today;
   // optional until a dossier endpoint exists.
   gates?: GateAssessment[];

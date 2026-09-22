@@ -37,7 +37,7 @@ class MockProvider:
 
 
 class LiteLLMProvider:
-    """LiteLLM-based provider that delegates to astra.core.llm."""
+    """LiteLLM-based provider pinned to one model for honest run identity."""
 
     def __init__(self, model: str, complete_fn: Optional[callable] = None):
         """Initialize with a model ID and optional complete function.
@@ -54,8 +54,8 @@ class LiteLLMProvider:
 
         if self.complete_fn is None:
             try:
-                from astra.core.llm import LLMRouter
-                self._router = LLMRouter(default_model=model)
+                from core.llm import LLMRouter
+                self._router = LLMRouter(default_model=model, model_chain=[model])
                 self.complete_fn = self._router.complete
             except (ImportError, AttributeError):
                 raise NotImplementedError(

@@ -19,6 +19,8 @@ from db.models import User
 from db.radar_models_cases import EvaluationCase, UserNotes, ApplicationStageHistory
 from academic_radar.domain import disposition as dsp
 from academic_radar.domain.enums import UserDisposition, ApplicationRoute, ApplicationStage, ResearchState
+from academic_radar.domain.case_truth import case_truth
+from academic_radar.research.protocol_loader import load_protocols
 
 router = APIRouter(prefix="/api/radar", tags=["radar"])
 
@@ -38,7 +40,8 @@ class CaseOut(BaseModel):
     blockers: list[dict] = Field(default_factory=list)
     unknown_count: int = 0
     deadline: Optional[DeadlineOut] = None
-    freshness: bool = True
+    freshness: Optional[bool] = None
+    brief_block_reasons: list[str] = Field(default_factory=list)
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -100,7 +103,7 @@ def create_case(
     session.add(case)
     session.commit()
 
-    return _case_to_out(case)
+    return _case_to_out(session, case)
 
 
 @router.get("/cases", response_model=CaseListResponse)
@@ -131,7 +134,7 @@ def list_cases(
 
     cases = session.scalars(stmt).all()
 
-    items = [_case_to_out(c) for c in cases]
+    items = [_case_to_out(session, c) for c in cases]
     return CaseListResponse(items=items)
 
 
@@ -146,7 +149,7 @@ def get_case(
     if not case:
         raise HTTPException(status_code=404, detail=f"Case {case_id} not found")
 
-    return _case_to_out(case)
+    return _case_to_out(session, case)
 
 
 class DispositionIn(BaseModel):
@@ -190,7 +193,7 @@ def set_disposition(
     )
     session.commit()
 
-    return _case_to_out(case)
+    return _case_to_out(session, case)
 
 
 class NoteIn(BaseModel):
@@ -246,18 +249,20 @@ def post_stage(
     session.add(history)
     session.commit()
 
-    return _case_to_out(case)
+    return _case_to_out(session, case)
 
 
-def _case_to_out(case: EvaluationCase) -> CaseOut:
+def _case_to_out(session: Session, case: EvaluationCase) -> CaseOut:
     """Convert EvaluationCase model to response output."""
+    truth = case_truth(session, case, load_protocols()[case.application_route])
     return CaseOut(
         id=case.id,
         research_state=case.research_state,
         suggested_disposition=case.suggested_disposition,
         user_disposition=case.user_disposition,
-        blockers=[],
-        unknown_count=0,
-        deadline=None,
-        freshness=True
+        blockers=truth.blockers,
+        unknown_count=truth.unknown_count,
+        deadline=truth.deadline,
+        freshness=truth.freshness,
+        brief_block_reasons=truth.brief_block_reasons,
     )

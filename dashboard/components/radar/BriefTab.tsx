@@ -54,16 +54,8 @@ export function BriefTab({ caseId, caseData }: BriefTabProps) {
     }
   };
 
-  // Freeze guards restored (Tier-A oracle): the button stays disabled while the
-  // case has formal blockers, unresolved unknowns, or stale facts.
-  const briefDisabledReason = (): string | null => {
-    if (!caseData) return "Case data not loaded";
-    if (caseData.blockers.length > 0) return "Formal blockers must be resolved";
-    if (caseData.unknown_count > 0) return "Unknown facts must be resolved";
-    if (!caseData.freshness) return "Critical facts need rechecking";
-    return null;
-  };
-  const disabledReason = briefDisabledReason();
+  const reasons = caseData?.brief_block_reasons ?? [];
+  const disabledReason = caseData ? reasons[0] ?? null : "Case data not loaded";
 
   return (
     <section className="border border-border" aria-labelledby="application-brief-title">
@@ -103,9 +95,13 @@ export function BriefTab({ caseId, caseData }: BriefTabProps) {
               Freeze the current evidence into an application-preparation brief. This action does not deliver anything to anyone.
             </p>
             {disabledReason && (
-              <p data-testid="brief-disabled-reason" role="status" className="text-sm text-muted-foreground">
-                {disabledReason}
-              </p>
+              <div data-testid="brief-disabled-reason" role="status" className="text-sm text-muted-foreground">
+                {reasons.length ? (
+                  <ul className="list-disc pl-5">
+                    {reasons.map((reason) => <li key={reason}>{reason}</li>)}
+                  </ul>
+                ) : disabledReason}
+              </div>
             )}
             <Button type="button" onClick={() => void handleFreezeBrief()} disabled={!!disabledReason || freezing}>
               {freezing ? <Loader2 className="size-4 animate-spin" aria-hidden /> : <FileCheck2 className="size-4" aria-hidden />}

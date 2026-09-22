@@ -22,12 +22,13 @@ jest.mock("@/lib/api", () => ({
 const cleanCase: CaseDossier = {
   id: "case-1",
   research_state: "EVIDENCE_READY",
-  user_disposition: "UNDECIDED",
+  user_disposition: "ACT",
   suggested_disposition: "STRONG",
   blockers: [],
   unknown_count: 0,
   deadline: null,
   freshness: true,
+  brief_block_reasons: [],
 };
 
 const brief = {
@@ -66,29 +67,25 @@ describe("BriefTab", () => {
     expect(screen.queryByText(/email/i)).not.toBeInTheDocument();
   });
 
-  // Tier-A oracle restored (drop-in revision had inverted it): freeze guards on
-  // backend-provided CaseOut fields — blockers, unknowns, staleness.
-  it("disables freeze button when formal blockers exist", () => {
+  it("uses exact backend reasons to disable freeze", () => {
     render(
       <BriefTab
         caseId="case-1"
-        caseData={{ ...cleanCase, blockers: [{ name: "Formal gate", status: "FAIL" }] }}
+        caseData={{ ...cleanCase, brief_block_reasons: ["Hard gate failed: English proficiency"] }}
       />,
     );
     expect(screen.getByRole("button", { name: "Prepare evidence brief" })).toBeDisabled();
-    expect(screen.getByTestId("brief-disabled-reason")).toHaveTextContent("Formal blockers must be resolved");
+    expect(screen.getByTestId("brief-disabled-reason")).toHaveTextContent("Hard gate failed: English proficiency");
   });
 
-  it("disables freeze button when unknown facts exist", () => {
-    render(<BriefTab caseId="case-1" caseData={{ ...cleanCase, unknown_count: 3 }} />);
-    expect(screen.getByRole("button", { name: "Prepare evidence brief" })).toBeDisabled();
-    expect(screen.getByTestId("brief-disabled-reason")).toHaveTextContent("Unknown facts must be resolved");
-  });
-
-  it("disables freeze button when facts are not fresh", () => {
-    render(<BriefTab caseId="case-1" caseData={{ ...cleanCase, freshness: false }} />);
-    expect(screen.getByRole("button", { name: "Prepare evidence brief" })).toBeDisabled();
-    expect(screen.getByTestId("brief-disabled-reason")).toHaveTextContent("Critical facts need rechecking");
+  it("does not recompute freeze eligibility from noncritical unknowns or display fields", () => {
+    render(<BriefTab caseId="case-1" caseData={{
+      ...cleanCase,
+      blockers: [{ name: "Displayed assessment", status: "FAIL" }],
+      unknown_count: 3,
+      freshness: false,
+    }} />);
+    expect(screen.getByRole("button", { name: "Prepare evidence brief" })).toBeEnabled();
   });
 
   it("enables freeze only for a clean case", () => {

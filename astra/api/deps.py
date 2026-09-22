@@ -11,6 +11,7 @@ every endpoint that must require auth (profile / matches / bookmarks). The
 from __future__ import annotations
 
 import json
+import os
 import threading
 import time
 from datetime import datetime, timezone
@@ -97,6 +98,29 @@ def get_current_user(
     user = UserRepo(session).get_by_id(user_id)
     if user is None:
         raise _unauthorized()
+    return user
+
+
+def get_radar_owner(
+    user: User = Depends(get_current_user),
+) -> User:
+    """Restrict the single-owner Radar workspace to its configured account.
+
+    Radar records have no per-user owner column. Authentication alone would
+    expose the entire workspace to any other donor-app account, so a normal
+    deployment must name the sole owner explicitly.
+    """
+    owner_email = os.environ.get("RADAR_OWNER_EMAIL", "").strip().casefold()
+    if not owner_email:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Radar owner is not configured",
+        )
+    if user.email.strip().casefold() != owner_email:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Radar workspace access denied",
+        )
     return user
 
 

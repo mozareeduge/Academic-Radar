@@ -1,8 +1,5 @@
 """Research service: runs workflow and persists results to database."""
 
-import os
-import sys
-import json
 import logging
 from typing import Optional
 from sqlalchemy.orm import Session
@@ -25,6 +22,9 @@ def run_research(
     provider,
     evidence_lookup: dict,
     run_key: Optional[str] = None,
+    run_id: Optional[str] = None,
+    model_id: Optional[str] = None,
+    provider_id: Optional[str] = None,
 ) -> str:
     """Run research workflow and persist results in one transaction.
 
@@ -41,14 +41,12 @@ def run_research(
     Raises:
         ValueError: if case not found, protocol not found, or workflow fails validation
     """
-    print(f"DEBUG SERVICE: run_research called for case {case_id}", file=sys.stderr, flush=True)
     run_key = run_key or case_id
 
     # Load case
     case = session.query(EvaluationCase).filter_by(id=case_id).first()
     if not case:
         raise ValueError(f"Case {case_id} not found")
-    print(f"DEBUG SERVICE: Case found: {case.id}, state={case.research_state}", file=sys.stderr, flush=True)
 
     # Load protocol by application_route
     protocols = load_protocols()
@@ -71,35 +69,32 @@ def run_research(
         "sources": [],
     }
     result = graph.invoke(initial_state)
-    print(f"DEBUG SERVICE: Graph result keys: {result.keys() if isinstance(result, dict) else type(result)}", file=sys.stderr, flush=True)
-    print(f"DEBUG SERVICE: Claims in result: {result.get('claims', [])}", file=sys.stderr, flush=True)
-    print(f"DEBUG SERVICE: Coverage in result: {list(result.get('coverage', {}).keys())}", file=sys.stderr, flush=True)
 
     # Determine run status based on readiness
     readiness = result.get("readiness", {})
     status = "COMPLETED" if readiness.get("ready") else "PARTIAL"
 
     # Create research run record
-    run_id = _create_run_id()
+    run_id = run_id or _create_run_id()
 
     # Compute prompt hash from all nine node prompts for identity
     prompt_hash = _compute_prompt_hash()
     schema_version = "1.0.0"
 
-    run = ResearchRun(
-        id=run_id,
-        case_id=case_id,
-        protocol_version=protocol.version,
-        model_id="mock-model",
-        provider_id="mock-provider" if os.environ.get("RADAR_FIXTURE_MODE") == "1" else "llm-provider",
-        prompt_hash=prompt_hash,
-        schema_version=schema_version,
-        run_identity={"run_key": run_key},
-        status=status,
-    )
-    session.add(run)
+    run = session.get(ResearchRun, run_id)
+    if run is None:
+        run = ResearchRun(id=run_id, case_id=case_id, protocol_version=protocol.version)
+        session.add(run)
+    elif run.case_id != case_id:
+        raise ValueError("Research run belongs to another case")
+    run.protocol_version = protocol.version
+    run.model_id = model_id or getattr(provider, "model", None) or "mock-model"
+    run.provider_id = provider_id or ("mock-provider" if provider.__class__.__name__ == "MockProvider" else "llm-provider")
+    run.prompt_hash = prompt_hash
+    run.schema_version = schema_version
+    run.run_identity = {"run_key": run_key, "run_id": run_id}
+    run.status = status
     session.flush()
-    print(f"DEBUG SERVICE: Created run record {run_id}", file=sys.stderr, flush=True)
 
     # Create coverage records
     coverage = result.get("coverage", {})
@@ -116,11 +111,9 @@ def run_research(
             status=cov_status.value if isinstance(cov_status, CoverageStatus) else cov_status,
         )
         session.add(cov_record)
-    print(f"DEBUG SERVICE: Added {len(coverage)} coverage records", file=sys.stderr, flush=True)
 
     # Create claim records and evidence links
     claims = result.get("claims", [])
-    print(f"DEBUG SERVICE: Processing {len(claims)} claims from workflow", file=sys.stderr, flush=True)
     for claim_output in claims:
         # Map claim type enum value
         claim_type_str = claim_output.claim_type.value if hasattr(claim_output.claim_type, "value") else str(claim_output.claim_type)
@@ -166,7 +159,6 @@ def run_research(
 
     # Commit all changes
     session.commit()
-    print(f"DEBUG SERVICE: Committed all changes for run {run_id}", file=sys.stderr, flush=True)
 
     return run_id
 

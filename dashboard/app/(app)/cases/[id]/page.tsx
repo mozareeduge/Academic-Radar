@@ -134,7 +134,7 @@ export default function CaseDossierPage() {
                   <span className="border border-border bg-muted px-2 py-1 font-medium">{caseData.research_state}</span>
                   <span className="inline-flex items-center gap-1 border border-border px-2 py-1 text-muted-foreground">
                     <RefreshCw className="size-3" aria-hidden />
-                    {caseData.freshness ? "Fresh" : "Stale"}
+                    {caseData.freshness === null ? "Not assessed" : caseData.freshness ? "Fresh" : "Stale"}
                   </span>
                 </div>
               </div>
