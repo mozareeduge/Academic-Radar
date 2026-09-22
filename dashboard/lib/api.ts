@@ -843,8 +843,46 @@ export function fetchRadarRoutes(): Promise<Paginated<import("@/types").RadarRou
   return request<Paginated<import("@/types").RadarRoute>>("/api/radar/routes");
 }
 
+export function createRadarRoute(
+  body: import("@/types").RadarRouteInput & { name: string },
+): Promise<import("@/types").RadarRoute> {
+  return request<import("@/types").RadarRoute>("/api/radar/routes", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export function updateRadarRoute(
+  routeId: string,
+  body: import("@/types").RadarRouteInput,
+): Promise<import("@/types").RadarRoute> {
+  return request<import("@/types").RadarRoute>(
+    `/api/radar/routes/${encodeURIComponent(routeId)}`,
+    { method: "PATCH", body: JSON.stringify(body) },
+  );
+}
+
+export function setRadarRouteState(
+  routeId: string,
+  state: import("@/types").RouteState,
+): Promise<import("@/types").RadarRoute> {
+  return request<import("@/types").RadarRoute>(
+    `/api/radar/routes/${encodeURIComponent(routeId)}/state`,
+    { method: "PATCH", body: JSON.stringify({ state }) },
+  );
+}
+
 export function fetchRadarProfile(): Promise<import("@/types").RadarProfile> {
   return request<import("@/types").RadarProfile>("/api/radar/profile");
+}
+
+export function updateRadarProfile(
+  body: import("@/types").RadarProfileInput,
+): Promise<import("@/types").RadarProfile> {
+  return request<import("@/types").RadarProfile>("/api/radar/profile", {
+    method: "PUT",
+    body: JSON.stringify(body),
+  });
 }
 
 export function freezeBrief(caseId: string): Promise<{
