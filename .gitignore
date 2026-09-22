@@ -32,9 +32,19 @@ astra/astra_positions_selftest*.csv
 astra/astra_positions_selftest*.html
 astra/astra_positions_selftest*.json
 
-# SQLite runtime DBs (recreated on first run; see DEFAULT_DB_URL)
+# SQLite runtime DBs (recreated on first run; see DEFAULT_DB_URL).
+# Broad *.db/*.sqlite3 match is deliberate: any local dev/demo database file
+# can end up holding real personal data (candidate profile, education,
+# employer names) typed in through the app, not just synthetic fixtures.
 astra.db
 astra.db.bak
+*.db
+*.db.bak
+*.sqlite3
+
+# Agent-tool git worktrees (nested checkouts, not repo content)
+.harness-worktrees/
+**/.harness-worktrees/
 
 # HTTP conditional-GET cache (M2)
 .http_cache.sqlite
