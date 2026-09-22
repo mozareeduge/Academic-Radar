@@ -14,6 +14,11 @@ services:
     restart: unless-stopped
     security_opt: ["no-new-privileges:true"]
     cap_drop: [ALL]
+    # redis:7-alpine's entrypoint drops root via setpriv when started as uid 0,
+    # which needs CAP_SETUID/CAP_SETGID that cap_drop:[ALL] removes. Starting
+    # the container directly as the image's non-root redis user (uid/gid 999)
+    # skips that step entirely, so it still runs non-root under cap_drop:[ALL].
+    user: "999:999"
 
   api:
     restart: unless-stopped
