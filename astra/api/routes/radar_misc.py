@@ -1,12 +1,13 @@
 """api.routes.radar_misc — Radar misc API endpoints.
 
 Implements GET/POST /funding/{case_id}, GET/POST /watch/targets,
-GET /watch/changes, GET /routes, PATCH /routes/{id}/state, GET /profile.
+GET /watch/changes, GET /routes, POST /routes, PATCH /routes/{id},
+PATCH /routes/{id}/state, GET /profile, PUT /profile.
 """
 
 from __future__ import annotations
 
-from typing import Optional
+from typing import Any, Optional
 from datetime import datetime
 from decimal import Decimal
 from pydantic import BaseModel, Field, ConfigDict
@@ -282,17 +283,23 @@ def list_change_events(
 # ============================================================================
 
 class RouteOut(BaseModel):
-    """Route response model."""
+    """Route response model.
+
+    ``operations_methods``, ``relevant_corpora_material``, ``target_disciplines``
+    and ``prohibited_overclaims`` are stored as JSON lists of plain strings (see
+    ``academic_radar.profile.mozare_import``), not dicts — ``Any`` here so both
+    the real list shape and any legacy/dict fixture data validate.
+    """
     id: str
     name: str
     state: str
     route_statement: Optional[str] = None
     core_problem: Optional[str] = None
-    operations_methods: Optional[dict] = None
-    relevant_corpora_material: Optional[dict] = None
-    supporting_evidence: Optional[dict] = None
-    target_disciplines: Optional[dict] = None
-    prohibited_overclaims: Optional[dict] = None
+    operations_methods: Optional[Any] = None
+    relevant_corpora_material: Optional[Any] = None
+    supporting_evidence: Optional[Any] = None
+    target_disciplines: Optional[Any] = None
+    prohibited_overclaims: Optional[Any] = None
     maturity: Optional[str] = None
     created_at: datetime
     updated_at: datetime
@@ -310,6 +317,42 @@ class RouteStatePatchIn(BaseModel):
     state: str
 
 
+class RouteCreateIn(BaseModel):
+    """Request body for creating a research route.
+
+    Mirrors the fields a real route needs to be usable by discovery/matching
+    (see ``academic_radar.profile.mozare_import._import_route``); free-form
+    lists (methods, corpora, disciplines, overclaims) are plain strings.
+    """
+    name: str
+    state: str = "ACTIVE"
+    route_statement: Optional[str] = None
+    core_problem: Optional[str] = None
+    operations_methods: Optional[list[str]] = None
+    relevant_corpora_material: Optional[list[str]] = None
+    target_disciplines: Optional[list[str]] = None
+    prohibited_overclaims: Optional[list[str]] = None
+    maturity: Optional[str] = None
+
+
+class RouteUpdateIn(BaseModel):
+    """Request body for editing a research route's fields.
+
+    All fields optional (partial update); state transitions are validated the
+    same way as ``PATCH /routes/{id}/state`` when included here too, since the
+    edit form lets a user retire/reactivate a route from the same save.
+    """
+    name: Optional[str] = None
+    state: Optional[str] = None
+    route_statement: Optional[str] = None
+    core_problem: Optional[str] = None
+    operations_methods: Optional[list[str]] = None
+    relevant_corpora_material: Optional[list[str]] = None
+    target_disciplines: Optional[list[str]] = None
+    prohibited_overclaims: Optional[list[str]] = None
+    maturity: Optional[str] = None
+
+
 @router.get("/routes", response_model=RouteListResponse)
 def list_routes(
     user: User = Depends(get_current_user),
@@ -319,6 +362,65 @@ def list_routes(
     routes = session.query(MozareRoute).all()
     items = [RouteOut.model_validate(r, from_attributes=True) for r in routes]
     return RouteListResponse(items=items)
+
+
+@router.post("/routes", response_model=RouteOut, status_code=201)
+def create_route(
+    body: RouteCreateIn,
+    user: User = Depends(get_current_user),
+    session: Session = Depends(get_db),
+) -> RouteOut:
+    """Create a new research route (MozareRoute).
+
+    Lets the owner add a research direction from the profile form, without
+    going through the dev-only fixture seed importer.
+    """
+    try:
+        RouteState(body.state)
+    except ValueError:
+        raise HTTPException(status_code=422, detail=f"Invalid state: {body.state}")
+
+    route = MozareRoute(
+        name=body.name,
+        state=body.state,
+        route_statement=body.route_statement,
+        core_problem=body.core_problem,
+        operations_methods=body.operations_methods,
+        relevant_corpora_material=body.relevant_corpora_material,
+        target_disciplines=body.target_disciplines,
+        prohibited_overclaims=body.prohibited_overclaims,
+        maturity=body.maturity,
+    )
+    session.add(route)
+    session.commit()
+
+    return RouteOut.model_validate(route, from_attributes=True)
+
+
+@router.patch("/routes/{route_id}", response_model=RouteOut)
+def update_route(
+    route_id: str,
+    body: RouteUpdateIn,
+    user: User = Depends(get_current_user),
+    session: Session = Depends(get_db),
+) -> RouteOut:
+    """Edit a research route's fields (partial update; unset fields are left alone)."""
+    route = session.query(MozareRoute).filter(MozareRoute.id == route_id).first()
+    if not route:
+        raise HTTPException(status_code=404, detail=f"Route {route_id} not found")
+
+    data = body.model_dump(exclude_unset=True)
+    if "state" in data:
+        try:
+            RouteState(data["state"])
+        except ValueError:
+            raise HTTPException(status_code=422, detail=f"Invalid state: {data['state']}")
+
+    for field, value in data.items():
+        setattr(route, field, value)
+    session.commit()
+
+    return RouteOut.model_validate(route, from_attributes=True)
 
 
 @router.patch("/routes/{route_id}/state", response_model=RouteOut)
@@ -353,21 +455,77 @@ def update_route_state(
 # ============================================================================
 
 class ProfileOut(BaseModel):
-    """Candidate profile response model."""
+    """Candidate profile response model.
+
+    ``education``, ``language_evidence``, ``scholarly_work``,
+    ``artistic_curatorial_work`` and ``professional_technical_evidence`` are
+    each stored as a JSON list of fact dicts (see
+    ``academic_radar.profile.mozare_import``), each carrying its own
+    ``provenance`` — ``Any`` here so both that real list shape and any
+    legacy/dict fixture data validate.
+    """
     id: str
     state: str
     fixed_constraints: Optional[str] = None
-    education: Optional[dict] = None
-    language_evidence: Optional[dict] = None
-    scholarly_work: Optional[dict] = None
-    artistic_curatorial_work: Optional[dict] = None
-    professional_technical_evidence: Optional[dict] = None
+    education: Optional[Any] = None
+    language_evidence: Optional[Any] = None
+    scholarly_work: Optional[Any] = None
+    artistic_curatorial_work: Optional[Any] = None
+    professional_technical_evidence: Optional[Any] = None
     verification_status: Optional[str] = None
-    documents: Optional[dict] = None
+    documents: Optional[Any] = None
     created_at: datetime
     updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+
+# A human filling out the profile form supplies fact fields only (e.g.
+# {"degree": "MSc Physics", "institution": "..."}); provenance is not
+# something a non-technical user can meaningfully declare by hand, so the
+# server stamps every fact with a fixed self-reported/unverified provenance,
+# matching the {source, verified} shape the dev seed importer enforces
+# (academic_radar.profile.mozare_import._validate_provenance).
+SELF_REPORTED_PROVENANCE = {
+    "source": "Self-reported via profile form",
+    "verified": False,
+}
+
+
+def _with_self_reported_provenance(
+    items: Optional[list[dict[str, Any]]],
+) -> Optional[list[dict[str, Any]]]:
+    """Attach the default provenance to every fact in a list, dropping any
+    client-supplied ``provenance`` so a user can never mark their own facts
+    as independently verified."""
+    if not items:
+        return None
+    normalized: list[dict[str, Any]] = []
+    for item in items:
+        if not isinstance(item, dict):
+            raise HTTPException(
+                status_code=422, detail="Each fact must be an object of field/value pairs"
+            )
+        fact = {k: v for k, v in item.items() if k != "provenance"}
+        fact["provenance"] = dict(SELF_REPORTED_PROVENANCE)
+        normalized.append(fact)
+    return normalized
+
+
+class ProfileUpdateIn(BaseModel):
+    """Request body for creating/updating the candidate profile.
+
+    Only the fact fields are accepted — provenance is never supplied by the
+    client (see ``_with_self_reported_provenance``). Any section omitted
+    (left as ``None``) is left unchanged; pass an empty list to clear a
+    section.
+    """
+    fixed_constraints: Optional[str] = None
+    education: Optional[list[dict[str, Any]]] = None
+    language_evidence: Optional[list[dict[str, Any]]] = None
+    scholarly_work: Optional[list[dict[str, Any]]] = None
+    artistic_curatorial_work: Optional[list[dict[str, Any]]] = None
+    professional_technical_evidence: Optional[list[dict[str, Any]]] = None
 
 
 @router.get("/profile", response_model=ProfileOut)
@@ -385,5 +543,45 @@ def get_profile(
 
     if not profile:
         raise HTTPException(status_code=404, detail="No active profile found")
+
+    return ProfileOut.model_validate(profile, from_attributes=True)
+
+
+@router.put("/profile", response_model=ProfileOut)
+def upsert_profile(
+    body: ProfileUpdateIn,
+    user: User = Depends(get_current_user),
+    session: Session = Depends(get_db),
+) -> ProfileOut:
+    """Create the candidate profile if none exists yet, or update the active one.
+
+    Academic Radar is a single-owner workspace (RADAR_OWNER_EMAIL), so there
+    is exactly one profile to upsert: the current ACTIVE row, or a fresh one
+    if this is the first save. Fields left out of the request body (None) are
+    left unchanged; send an empty list to clear a section.
+    """
+    profile = session.query(CandidateProfile).filter(
+        CandidateProfile.state == "ACTIVE"
+    ).first()
+    if profile is None:
+        profile = CandidateProfile(state="ACTIVE")
+        session.add(profile)
+
+    body_data = body.model_dump(exclude_unset=True)
+    if "fixed_constraints" in body_data:
+        profile.fixed_constraints = body.fixed_constraints
+    if "education" in body_data:
+        profile.education = _with_self_reported_provenance(body.education)
+    if "language_evidence" in body_data:
+        profile.language_evidence = _with_self_reported_provenance(body.language_evidence)
+    if "scholarly_work" in body_data:
+        profile.scholarly_work = _with_self_reported_provenance(body.scholarly_work)
+    if "artistic_curatorial_work" in body_data:
+        profile.artistic_curatorial_work = _with_self_reported_provenance(body.artistic_curatorial_work)
+    if "professional_technical_evidence" in body_data:
+        profile.professional_technical_evidence = _with_self_reported_provenance(body.professional_technical_evidence)
+
+    session.commit()
+    session.refresh(profile)
 
     return ProfileOut.model_validate(profile, from_attributes=True)

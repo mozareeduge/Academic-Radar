@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import AstraMark from "@/components/AstraMark";
 import { BRAND } from "@/lib/brand";
 import { fetchMe, logout } from "@/lib/api";
-import { Bookmark, KeyRound, LayoutDashboard, LogOut, Settings, Shield, User, Users, Workflow } from "lucide-react";
+import { Bookmark, GraduationCap, KeyRound, LayoutDashboard, LogOut, Settings, Shield, User, Users, Workflow } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // `adminOnly` pages are operator tooling, not features an ordinary user needs.
@@ -14,6 +14,9 @@ import { cn } from "@/lib/utils";
 // advertising things most people cannot use and should not have to think about.
 const NAV_ITEMS = [
   { href: "/radar", label: "Radar", icon: LayoutDashboard },
+  // Owner's academic profile (CandidateProfile) + research routes
+  // (MozareRoute) — distinct from the legacy match-profile at /profile.
+  { href: "/radar/profile", label: "My Profile", icon: GraduationCap },
   { href: "/phd", label: "PhD", icon: User },
   { href: "/ma", label: "MA + Funding", icon: Workflow },
   { href: "/supervisors-radar", label: "Supervisors", icon: Users },

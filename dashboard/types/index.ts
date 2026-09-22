@@ -725,6 +725,8 @@ export type ApplicationStage =
   | "DECLINED"
   | "CLOSED";
 
+export type RouteState = "ACTIVE" | "EXPLORATORY" | "DORMANT" | "RETIRED";
+
 // Matches backend RouteOut (astra/api/routes/radar_misc.py).
 export interface RadarRoute {
   id: string;
@@ -732,9 +734,38 @@ export interface RadarRoute {
   state: string;
   route_statement?: string | null;
   core_problem?: string | null;
+  operations_methods?: string[] | null;
+  relevant_corpora_material?: string[] | null;
+  supporting_evidence?: Record<string, unknown> | null;
+  target_disciplines?: string[] | null;
+  prohibited_overclaims?: string[] | null;
   maturity?: string | null;
   created_at: string;
   updated_at: string;
+}
+
+// Body for POST /api/radar/routes and PATCH /api/radar/routes/{id}
+// (astra/api/routes/radar_misc.py: RouteCreateIn / RouteUpdateIn).
+export interface RadarRouteInput {
+  name?: string;
+  state?: RouteState | string;
+  route_statement?: string | null;
+  core_problem?: string | null;
+  operations_methods?: string[];
+  relevant_corpora_material?: string[];
+  target_disciplines?: string[];
+  prohibited_overclaims?: string[];
+  maturity?: string | null;
+}
+
+/**
+ * One free-form fact in a CandidateProfile section (education, scholarly
+ * work, etc). Field names are whatever the user entered — the profile form
+ * never asks for `provenance`, the backend stamps it in automatically.
+ */
+export interface ProfileFact {
+  provenance?: { source: string; verified: boolean };
+  [key: string]: unknown;
 }
 
 // Matches backend ProfileOut (astra/api/routes/radar_misc.py).
@@ -742,13 +773,25 @@ export interface RadarProfile {
   id: string;
   state: string;
   fixed_constraints?: string | null;
-  education?: Record<string, unknown> | null;
-  language_evidence?: Record<string, unknown> | null;
-  scholarly_work?: Record<string, unknown> | null;
-  artistic_curatorial_work?: Record<string, unknown> | null;
-  professional_technical_evidence?: Record<string, unknown> | null;
+  education?: ProfileFact[] | null;
+  language_evidence?: ProfileFact[] | null;
+  scholarly_work?: ProfileFact[] | null;
+  artistic_curatorial_work?: ProfileFact[] | null;
+  professional_technical_evidence?: ProfileFact[] | null;
   verification_status?: string | null;
   documents?: Record<string, unknown> | null;
   created_at: string;
   updated_at: string;
+}
+
+// Body for PUT /api/radar/profile (astra/api/routes/radar_misc.py: ProfileUpdateIn).
+// Facts carry only their field data — never `provenance`, which the server
+// always overwrites with a fixed self-reported/unverified value.
+export interface RadarProfileInput {
+  fixed_constraints?: string | null;
+  education?: Omit<ProfileFact, "provenance">[];
+  language_evidence?: Omit<ProfileFact, "provenance">[];
+  scholarly_work?: Omit<ProfileFact, "provenance">[];
+  artistic_curatorial_work?: Omit<ProfileFact, "provenance">[];
+  professional_technical_evidence?: Omit<ProfileFact, "provenance">[];
 }

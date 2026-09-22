@@ -1,7 +1,8 @@
 """tests.academic_radar.test_api_misc — Radar misc API endpoints.
 
 Covers GET/POST /funding/{case_id}, GET/POST /watch/targets, GET /watch/changes,
-GET /routes, PATCH /routes/{id}/state, GET /profile.
+GET/POST /routes, PATCH /routes/{id}, PATCH /routes/{id}/state,
+GET/PUT /profile.
 """
 
 from __future__ import annotations
@@ -345,9 +346,106 @@ class TestRoutesEndpoints:
         resp = client.patch("/api/radar/routes/nonexistent/state", json=payload, headers=auth)
         assert resp.status_code == 404
 
+    def test_post_routes_creates_a_route(self, client, auth):
+        """POST /routes creates a new MozareRoute with the submitted fields."""
+        payload = {
+            "name": "Quantum Simulation Route",
+            "state": "ACTIVE",
+            "route_statement": "Investigate quantum simulation supervisors.",
+            "core_problem": "Decoherence limits practical quantum advantage.",
+            "operations_methods": ["Topological error correction", "Tensor networks"],
+            "relevant_corpora_material": ["arXiv quant-ph"],
+            "target_disciplines": ["Quantum Physics"],
+            "prohibited_overclaims": ["Claims of near-term quantum advantage"],
+            "maturity": "EXPLORATORY",
+        }
+        resp = client.post("/api/radar/routes", json=payload, headers=auth)
+        assert resp.status_code == 201
+        data = resp.json()
+        assert data["name"] == "Quantum Simulation Route"
+        assert data["state"] == "ACTIVE"
+        assert data["operations_methods"] == payload["operations_methods"]
+        assert data["target_disciplines"] == payload["target_disciplines"]
+        assert data["maturity"] == "EXPLORATORY"
+
+        listed = client.get("/api/radar/routes", headers=auth)
+        assert len(listed.json()["items"]) == 1
+
+    def test_post_routes_validates_state_enum(self, client, auth):
+        """POST /routes rejects a state outside the RouteState enum."""
+        resp = client.post(
+            "/api/radar/routes",
+            json={"name": "Bad Route", "state": "NOT_A_STATE"},
+            headers=auth,
+        )
+        assert resp.status_code == 422
+
+    def test_patch_route_updates_fields(self, client, auth, db_session):
+        """PATCH /routes/{id} edits route fields without touching state via this path."""
+        route = MozareRoute(name="Original Name", state="ACTIVE", maturity="EXPLORATORY")
+        session = db_session
+        session.add(route)
+        session.commit()
+
+        resp = client.patch(
+            f"/api/radar/routes/{route.id}",
+            json={
+                "name": "Renamed Route",
+                "core_problem": "Updated problem statement",
+                "operations_methods": ["New method"],
+            },
+            headers=auth,
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["name"] == "Renamed Route"
+        assert data["core_problem"] == "Updated problem statement"
+        assert data["operations_methods"] == ["New method"]
+        # Fields not sent in the PATCH body are left unchanged.
+        assert data["maturity"] == "EXPLORATORY"
+        assert data["state"] == "ACTIVE"
+
+    def test_patch_route_can_deactivate_via_state(self, client, auth, db_session):
+        """PATCH /routes/{id} can also retire a route in the same save."""
+        route = MozareRoute(name="Test Route", state="ACTIVE")
+        session = db_session
+        session.add(route)
+        session.commit()
+
+        resp = client.patch(
+            f"/api/radar/routes/{route.id}",
+            json={"state": "RETIRED"},
+            headers=auth,
+        )
+        assert resp.status_code == 200
+        assert resp.json()["state"] == "RETIRED"
+
+    def test_patch_route_validates_state_enum(self, client, auth, db_session):
+        """PATCH /routes/{id} rejects an invalid state value."""
+        route = MozareRoute(name="Test Route", state="ACTIVE")
+        session = db_session
+        session.add(route)
+        session.commit()
+
+        resp = client.patch(
+            f"/api/radar/routes/{route.id}",
+            json={"state": "NOT_A_STATE"},
+            headers=auth,
+        )
+        assert resp.status_code == 422
+
+    def test_patch_route_not_found(self, client, auth):
+        """PATCH /routes/{id} with an unknown id returns 404."""
+        resp = client.patch(
+            "/api/radar/routes/nonexistent",
+            json={"name": "Whatever"},
+            headers=auth,
+        )
+        assert resp.status_code == 404
+
 
 class TestProfileEndpoint:
-    """GET /profile."""
+    """GET /profile and PUT /profile."""
 
     def test_get_profile_returns_current_candidate_profile(self, client, auth, db_session):
         """GET /profile returns the active CandidateProfile."""
@@ -369,3 +467,121 @@ class TestProfileEndpoint:
         db_session.commit()
         resp = client.get("/api/radar/profile", headers=auth)
         assert resp.status_code == 404
+
+    def test_put_profile_creates_when_none_exists(self, client, auth, db_session):
+        """PUT /profile creates the ACTIVE profile on first save."""
+        db_session.commit()
+
+        payload = {
+            "fixed_constraints": "English language proficiency (IELTS 7.0+)",
+            "education": [
+                {"degree": "BSc Physics", "institution": "University of Example", "year": 2020},
+            ],
+        }
+        resp = client.put("/api/radar/profile", json=payload, headers=auth)
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["state"] == "ACTIVE"
+        assert data["fixed_constraints"] == payload["fixed_constraints"]
+        assert data["education"] == [
+            {
+                "degree": "BSc Physics",
+                "institution": "University of Example",
+                "year": 2020,
+                "provenance": {
+                    "source": "Self-reported via profile form",
+                    "verified": False,
+                },
+            },
+        ]
+
+        # GET reflects the same profile, and there is exactly one row.
+        listed = client.get("/api/radar/profile", headers=auth)
+        assert listed.status_code == 200
+        assert listed.json()["id"] == data["id"]
+        assert db_session.query(CandidateProfile).count() == 1
+
+    def test_put_profile_updates_existing_active_profile(self, client, auth, db_session):
+        """PUT /profile updates the existing ACTIVE row rather than creating a second one."""
+        profile = CandidateProfile(state="ACTIVE", fixed_constraints="Old constraint")
+        session = db_session
+        session.add(profile)
+        session.commit()
+        profile_id = profile.id
+
+        resp = client.put(
+            "/api/radar/profile",
+            json={"fixed_constraints": "New constraint"},
+            headers=auth,
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["id"] == profile_id
+        assert data["fixed_constraints"] == "New constraint"
+        assert db_session.query(CandidateProfile).count() == 1
+
+    def test_put_profile_strips_client_provenance_and_defaults_it(self, client, auth, db_session):
+        """A client cannot mark its own facts as independently verified."""
+        db_session.commit()
+
+        resp = client.put(
+            "/api/radar/profile",
+            json={
+                "scholarly_work": [
+                    {
+                        "title": "A paper",
+                        "provenance": {"source": "Fabricated", "verified": True},
+                    },
+                ],
+            },
+            headers=auth,
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["scholarly_work"] == [
+            {
+                "title": "A paper",
+                "provenance": {
+                    "source": "Self-reported via profile form",
+                    "verified": False,
+                },
+            },
+        ]
+
+    def test_put_profile_omitted_section_is_left_unchanged(self, client, auth, db_session):
+        """Sections not present in the request body are left as-is."""
+        profile = CandidateProfile(
+            state="ACTIVE",
+            language_evidence=[
+                {
+                    "language": "English",
+                    "proficiency_level": "C1",
+                    "provenance": {"source": "IELTS certificate", "verified": True},
+                },
+            ],
+        )
+        session = db_session
+        session.add(profile)
+        session.commit()
+
+        resp = client.put(
+            "/api/radar/profile",
+            json={"fixed_constraints": "Updated only this"},
+            headers=auth,
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["fixed_constraints"] == "Updated only this"
+        assert data["language_evidence"][0]["language"] == "English"
+        assert data["language_evidence"][0]["provenance"]["verified"] is True
+
+    def test_put_profile_rejects_non_object_fact(self, client, auth, db_session):
+        """A fact list item that isn't an object is a 422, not a silent drop."""
+        db_session.commit()
+
+        resp = client.put(
+            "/api/radar/profile",
+            json={"education": ["not an object"]},
+            headers=auth,
+        )
+        assert resp.status_code == 422
